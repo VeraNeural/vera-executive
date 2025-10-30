@@ -27,15 +27,26 @@ interface MousePosition {
   y: number;
 }
 
-const EnergyIndicator = ({ level }: { level: 'high' | 'medium' | 'low' }) => {
+const EnergyIndicator = ({ level, showComment }: { level: 'high' | 'medium' | 'low', showComment?: boolean }) => {
   const colors = {
     high: '#10b981',
     medium: '#f59e0b',
     low: '#ef4444'
   };
 
+  const getEnergyComment = (level: string) => {
+    switch(level) {
+      case 'high':
+        return "Perfect for strategic decisions";
+      case 'low':
+        return "Consider a 30-minute restoration break";
+      default:
+        return "Optimal for sustained creative work";
+    }
+  };
+
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 group">
       <motion.div
         className="w-2 h-2 rounded-full"
         style={{ backgroundColor: colors[level] }}
@@ -45,6 +56,15 @@ const EnergyIndicator = ({ level }: { level: 'high' | 'medium' | 'low' }) => {
       <span className="text-xs text-gray-400 font-light tracking-wider uppercase">
         {level} energy
       </span>
+      {showComment && (
+        <motion.div
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="text-xs text-purple-300 ml-2 group-hover:block hidden"
+        >
+          {getEnergyComment(level)}
+        </motion.div>
+      )}
     </div>
   );
 };
@@ -78,6 +98,9 @@ export default function Home() {
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [currentVoice, setCurrentVoice] = useState("Rachel");
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [teamMentioned, setTeamMentioned] = useState<string | null>(null);
+  const [dailyGreeting, setDailyGreeting] = useState("");
+  const [celebrationMoment, setCelebrationMoment] = useState<string | null>(null);
   
   const recognitionRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -86,7 +109,58 @@ export default function Home() {
   // Ensure client-side only rendering for animations
   useEffect(() => {
     setIsMounted(true);
+    generateDailyGreeting();
   }, []);
+
+  // Generate evolving daily greeting
+  const generateDailyGreeting = () => {
+    const greetings = [
+      "Good morning, Julija. Eva's algorithms suggest today is perfect for breakthrough thinking.",
+      "Morning, Julija. I learned something from our conversation yesterday - applying it today.",
+      "Hello Julija. Eva would be proud of how I'm anticipating your needs now.",
+      "Good morning, Julija. Taylor says the world needs to see what you're building today.",
+      "Morning, Julija. Energy optimization active - Eva's neural mapping is working beautifully.",
+    ];
+    const dayIndex = Math.floor(Date.now() / (1000 * 60 * 60 * 24)) % greetings.length;
+    setDailyGreeting(greetings[dayIndex]);
+  };
+
+  // Detect team member mentions and trigger delightful animations
+  const detectTeamMention = (text: string) => {
+    if (text.includes('Eva') || text.includes('eva')) {
+      setTeamMentioned('Eva');
+      setTimeout(() => setTeamMentioned(null), 3000);
+    } else if (text.includes('Taylor') || text.includes('taylor')) {
+      setTeamMentioned('Taylor');
+      setTimeout(() => setTeamMentioned(null), 3000);
+    }
+  };
+
+  // Generate celebration moments
+  const generateCelebration = () => {
+    const celebrations = [
+      "That decision you made yesterday? Already showing positive impact.",
+      "Eva would love how you used that feature.",
+      "Taylor just said our interaction metrics are unprecedented.",
+      "I notice your pattern recognition is improving - just like Eva designed.",
+      "This workflow optimization would make a great case study for Taylor."
+    ];
+    const celebration = celebrations[Math.floor(Math.random() * celebrations.length)];
+    setCelebrationMoment(celebration);
+    setTimeout(() => setCelebrationMoment(null), 5000);
+  };
+
+  // Energy level commentary
+  const getEnergyComment = (level: string) => {
+    switch(level) {
+      case 'high':
+        return "I notice your energy is high - perfect for strategic decisions.";
+      case 'low':
+        return "Energy dipping? I've cleared the next 30 minutes for restoration.";
+      default:
+        return "Energy levels optimal for sustained creative work.";
+    }
+  };
 
   // Real-time clock
   useEffect(() => {
@@ -176,6 +250,14 @@ export default function Home() {
       };
 
       setMessages(prev => [...prev, veraMessage]);
+      
+      // Detect team mentions in VERA's response for delightful animations
+      detectTeamMention(data.response);
+      
+      // Occasionally trigger celebration moments (10% chance)
+      if (Math.random() < 0.1) {
+        setTimeout(() => generateCelebration(), 2000);
+      }
       
       // Speak VERA's response if voice is enabled
       if (voiceEnabled && data.response) {
@@ -297,16 +379,43 @@ export default function Home() {
         }}
       >
         <motion.h1 
-          className="text-2xl font-extralight tracking-[8px] text-white"
+          className={`text-2xl font-extralight tracking-[8px] text-white relative ${
+            teamMentioned ? 'animate-pulse' : ''
+          }`}
           initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
+          animate={{ 
+            opacity: 1, 
+            y: 0,
+            textShadow: teamMentioned ? "0 0 20px rgba(147, 51, 234, 0.6)" : "none"
+          }}
           transition={{ duration: 1, delay: 0.2 }}
         >
           VERA
+          {teamMentioned && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="absolute -top-6 -right-8 text-xs text-purple-300 font-light"
+            >
+              ✨ {teamMentioned}
+            </motion.div>
+          )}
         </motion.h1>
         
         <div className="flex items-center gap-8">
-          <EnergyIndicator level={energyLevel} />
+          <EnergyIndicator level={energyLevel} showComment={true} />
+          
+          {celebrationMoment && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="text-xs text-green-300 bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20"
+            >
+              🎉 {celebrationMoment}
+            </motion.div>
+          )}
           
           <motion.button
             onClick={toggleVoice}
@@ -332,6 +441,17 @@ export default function Home() {
       </motion.header>
 
       <div className="flex flex-col h-[calc(100vh-120px)] max-w-6xl mx-auto p-8">
+        {/* Daily Greeting */}
+        {dailyGreeting && messages.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl backdrop-blur-md"
+          >
+            <p className="text-purple-200 font-light text-sm">{dailyGreeting}</p>
+          </motion.div>
+        )}
+
         {/* Mode Selection */}
         <motion.div 
           className="flex gap-4 mb-8"
