@@ -556,93 +556,6 @@ export default function VeraExecutive() {
               </button>
             ))}
           </div>
-
-          {/* Voice Toggle */}
-          {sidebarOpen && (
-            <div style={{
-              marginTop: '32px',
-              padding: '16px',
-              background: 'rgba(124, 58, 237, 0.1)',
-              borderRadius: '8px',
-              border: '1px solid rgba(124, 58, 237, 0.2)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{
-                    width: '16px',
-                    height: '16px',
-                    borderRadius: '50%',
-                    background: voiceEnabled 
-                      ? 'radial-gradient(circle at 30% 30%, #a78bfa, #7c3aed, #5b21b6)'
-                      : 'radial-gradient(circle at 30% 30%, #555, #333, #222)',
-                    boxShadow: voiceEnabled ? '0 0 10px rgba(124, 58, 237, 0.5)' : 'none',
-                    position: 'relative'
-                  }}>
-                    <div style={{
-                      position: 'absolute',
-                      width: '50%',
-                      height: '50%',
-                      borderRadius: '50%',
-                      background: 'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.6), transparent)',
-                      top: '15%',
-                      left: '15%'
-                    }}></div>
-                  </div>
-                  <span style={{ color: '#a78bfa', fontSize: '13px', fontWeight: '500' }}>Voice</span>
-                </div>
-                <button
-                  onClick={() => setVoiceEnabled(!voiceEnabled)}
-                  style={{
-                    width: '40px',
-                    height: '20px',
-                    borderRadius: '10px',
-                    background: voiceEnabled ? 'linear-gradient(135deg, #7c3aed, #5b21b6)' : '#333',
-                    border: 'none',
-                    cursor: 'pointer',
-                    position: 'relative',
-                    transition: 'all 0.3s'
-                  }}
-                >
-                  <div style={{
-                    width: '16px',
-                    height: '16px',
-                    borderRadius: '50%',
-                    background: '#fff',
-                    position: 'absolute',
-                    top: '2px',
-                    left: voiceEnabled ? '22px' : '2px',
-                    transition: 'left 0.3s',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                  }}></div>
-                </button>
-              </div>
-              {isSpeaking && (
-                <div style={{ 
-                  display: 'flex', 
-                  gap: '4px', 
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginTop: '12px',
-                  height: '24px'
-                }}>
-                  {[0, 1, 2, 3, 4].map((i) => (
-                    <div
-                      key={i}
-                      style={{
-                        width: '4px',
-                        height: '4px',
-                        borderRadius: '50%',
-                        background: 'radial-gradient(circle, #a78bfa, #7c3aed)',
-                        animation: 'bounce 1.2s infinite ease-in-out',
-                        animationDelay: `${i * 0.1}s`,
-                        boxShadow: '0 0 8px rgba(124, 58, 237, 0.6)'
-                      }}
-                    ></div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
@@ -1088,12 +1001,89 @@ export default function VeraExecutive() {
               <p style={{ color: '#999', fontSize: '12px', margin: 0 }}>Executive Intelligence</p>
             </div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '14px', color: '#999' }}>
-              {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-            </div>
-            <div style={{ fontSize: '12px', color: '#666', fontFamily: 'monospace' }}>
-              {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {/* Voice Toggle Button */}
+            <button
+              onClick={() => setVoiceEnabled(!voiceEnabled)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                background: voiceEnabled 
+                  ? 'linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(91, 33, 182, 0.3))'
+                  : 'rgba(60, 60, 60, 0.4)',
+                border: voiceEnabled 
+                  ? '1px solid rgba(124, 58, 237, 0.5)'
+                  : '1px solid rgba(100, 100, 100, 0.3)',
+                borderRadius: '20px',
+                cursor: 'pointer',
+                transition: 'all 0.3s'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+            >
+              <div 
+                className={voiceEnabled ? 'breathing-orb' : ''}
+                style={{
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
+                  background: voiceEnabled 
+                    ? 'radial-gradient(circle at 30% 30%, #a78bfa, #7c3aed, #5b21b6)'
+                    : 'radial-gradient(circle at 30% 30%, #666, #444, #333)',
+                  boxShadow: voiceEnabled ? '0 0 12px rgba(124, 58, 237, 0.6)' : 'none',
+                  position: 'relative'
+                }}>
+                <div style={{
+                  position: 'absolute',
+                  width: '50%',
+                  height: '50%',
+                  borderRadius: '50%',
+                  background: 'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.6), transparent)',
+                  top: '15%',
+                  left: '15%'
+                }}></div>
+              </div>
+              <span style={{ 
+                color: voiceEnabled ? '#a78bfa' : '#888', 
+                fontSize: '13px', 
+                fontWeight: '600',
+                letterSpacing: '0.3px'
+              }}>
+                {voiceEnabled ? 'Voice ON' : 'Voice OFF'}
+              </span>
+              {isSpeaking && (
+                <div style={{ display: 'flex', gap: '3px', marginLeft: '4px' }}>
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      style={{
+                        width: '3px',
+                        height: '12px',
+                        background: 'linear-gradient(180deg, #a78bfa, #7c3aed)',
+                        borderRadius: '2px',
+                        animation: 'bounce 0.8s infinite ease-in-out',
+                        animationDelay: `${i * 0.1}s`
+                      }}
+                    ></div>
+                  ))}
+                </div>
+              )}
+            </button>
+            
+            {/* Date/Time */}
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '14px', color: '#999' }}>
+                {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+              </div>
+              <div style={{ fontSize: '12px', color: '#666', fontFamily: 'monospace' }}>
+                {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+              </div>
             </div>
           </div>
         </div>
