@@ -70,6 +70,9 @@ interface DesignSystem {
 }
 
 export default function VeraExecutive() {
+  // ADD THIS FIRST - prevents hydration errors
+  const [mounted, setMounted] = useState(false);
+  
   // Core states
   const [message, setMessage] = useState('');
   const [conversation, setConversation] = useState<Message[]>([]);
@@ -129,6 +132,11 @@ export default function VeraExecutive() {
   const mouseY = useMotionValue(0);
   const translateX = useTransform(mouseX, [0, 1920], [-20, 20]);
   const translateY = useTransform(mouseY, [0, 1080], [-20, 20]);
+
+  // Then ADD this useEffect:
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Initialize audio context for voice visualization
   useEffect(() => {
@@ -1182,9 +1190,18 @@ export default function VeraExecutive() {
     }
   }, []);
 
-  // Continue with the rest of the component JSX...
-  // [The complete JSX rendering code would continue here with all panels, UI elements, etc.]
-  
+  // Add this check BEFORE your main return
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#0A0A0A] to-[#0F0F0F]">
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-white opacity-50">Loading VERA...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Your existing return with ALL the features stays here!
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
       {/* Header */}
@@ -1204,7 +1221,7 @@ export default function VeraExecutive() {
         <div className="flex items-center gap-4">
           <div className="text-right">
             <div className="text-sm font-mono">
-              {currentTime.toLocaleTimeString('en-US', { hour12: false })}
+              {currentTime ? currentTime.toLocaleTimeString('en-US', { hour12: false }) : '--:--'}
             </div>
             <div className="text-xs text-purple-400 capitalize">
               Energy: {juliaEnergy}
