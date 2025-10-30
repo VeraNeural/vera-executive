@@ -1258,23 +1258,22 @@ export default function VeraExecutive() {
 
   // EMERGENCY ERROR BOUNDARY WRAPPER
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0A0A0A] to-[#0F0F0F] text-white font-sans">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 text-white relative overflow-hidden">
       {mounted ? (
         <>
-          <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 text-white relative overflow-hidden">
-            {/* Animated Background */}
-            <div className="absolute inset-0 opacity-30">
-              <div className="absolute top-0 left-0 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
-              <div className="absolute top-0 right-0 w-72 h-72 bg-yellow-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse animation-delay-2000"></div>
-              <div className="absolute bottom-0 left-0 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse animation-delay-4000"></div>
-            </div>
-            
-            {/* Header */}
-            <header className="relative z-10 flex items-center justify-between p-6 border-b border-white/10 backdrop-blur-sm bg-white/5"
-              style={{
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)'
-              }}
-            >
+          {/* Animated Background */}
+          <div className="absolute inset-0 opacity-30">
+            <div className="absolute top-0 left-0 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
+            <div className="absolute top-0 right-0 w-72 h-72 bg-yellow-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse animation-delay-2000"></div>
+            <div className="absolute bottom-0 left-0 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse animation-delay-4000"></div>
+          </div>
+          
+          {/* Header */}
+          <header className="relative z-10 flex items-center justify-between p-6 border-b border-white/10 backdrop-blur-sm bg-white/5"
+            style={{
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)'
+            }}
+          >
               <div className="flex items-center gap-4">
                 <motion.div
                   className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 shadow-lg shadow-purple-500/50"
@@ -1342,15 +1341,14 @@ export default function VeraExecutive() {
               </div>
 
               {/* Conversation */}
-              <div className="max-w-4xl mx-auto">
-                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 h-96 overflow-y-auto mb-6 space-y-4 shadow-2xl"
+              <div className="w-full">
+                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 h-96 overflow-y-auto mb-6 space-y-4 shadow-2xl mx-auto max-w-6xl"
                   style={{
                     background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)'
                   }}
                 >
                   {conversation.length === 0 ? (
                     <div className="text-center text-gray-200 mt-20">
-                      <div className="w-3 h-3 mx-auto mb-6 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 opacity-60"></div>
                       <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
                         VERA Executive Intelligence
                       </h3>
@@ -1416,7 +1414,7 @@ export default function VeraExecutive() {
                 </div>
 
                 {/* Input Area */}
-                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 shadow-2xl"
+                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 shadow-2xl mx-auto max-w-6xl"
                   style={{
                     background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)'
                   }}
@@ -2049,7 +2047,6 @@ export default function VeraExecutive() {
               onChange={(e) => e.target.files?.[0] && extractColors(e.target.files[0])}
               className="hidden"
             />
-          </div>
         </>
       ) : (
         <div className="flex items-center justify-center h-screen">
