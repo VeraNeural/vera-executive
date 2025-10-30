@@ -119,7 +119,7 @@ If this requires saying no, provide exact wording.`;
 
   } catch (error) {
     console.error('Decision API error:', error);
-    return NextResponse.json(generateQuickAnalysis(request.decision));
+    return NextResponse.json(generateQuickAnalysis('Unable to parse decision'));
   }
 }
 

@@ -135,15 +135,15 @@ Write the email exactly as Julija would write it. No AI language patterns.`;
     console.error('Email API error:', error);
     
     return NextResponse.json({
-      to: request.recipient,
-      subject: request.subject,
+      to: 'Unknown recipient',
+      subject: 'Email generation failed',
       body: generateFallbackEmail(
-        request.recipient,
-        request.subject,
-        request.context,
-        request.tone
+        'Unknown recipient',
+        'Email generation failed',
+        'Unable to process request',
+        'formal'
       ),
-      tone: request.tone
+      tone: 'formal'
     });
   }
 }
