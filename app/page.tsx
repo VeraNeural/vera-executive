@@ -9,13 +9,70 @@ interface Message {
   timestamp: Date;
 }
 
-// Add bounce animation
+// Add breathing orb animation
 if (typeof document !== 'undefined') {
   const style = document.createElement('style');
   style.textContent = `
     @keyframes bounce {
       0%, 80%, 100% { transform: scale(0); }
       40% { transform: scale(1); }
+    }
+    
+    @keyframes breathe {
+      0%, 100% { 
+        transform: scale(1);
+        box-shadow: 0 0 20px rgba(124, 58, 237, 0.3),
+                    0 0 40px rgba(124, 58, 237, 0.2),
+                    0 0 60px rgba(124, 58, 237, 0.1);
+      }
+      50% { 
+        transform: scale(1.1);
+        box-shadow: 0 0 30px rgba(124, 58, 237, 0.5),
+                    0 0 60px rgba(124, 58, 237, 0.3),
+                    0 0 90px rgba(124, 58, 237, 0.2);
+      }
+    }
+    
+    @keyframes pulse-ring {
+      0% {
+        transform: scale(0.8);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(1.5);
+        opacity: 0;
+      }
+    }
+    
+    .breathing-orb {
+      animation: breathe 4s ease-in-out infinite;
+      position: relative;
+    }
+    
+    .breathing-orb::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 2px solid rgba(124, 58, 237, 0.5);
+      animation: pulse-ring 2s ease-out infinite;
+    }
+    
+    .breathing-orb::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 2px solid rgba(124, 58, 237, 0.3);
+      animation: pulse-ring 2s ease-out infinite 1s;
     }
   `;
   document.head.appendChild(style);
@@ -50,17 +107,49 @@ export default function VeraExecutive() {
     setMessage('');
     setIsThinking(true);
 
-    // Simulate VERA thinking and responding
-    setTimeout(() => {
+    try {
+      // Call VERA API with real AI integration
+      const response = await fetch('/api/vera', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userMsg.content,
+          mode: 'executive',
+          context: {
+            energy: 'medium',
+            currentTime: new Date().toISOString(),
+            recentMessages: messages.slice(-3).map(m => ({
+              role: m.role,
+              content: m.content
+            }))
+          }
+        }),
+      });
+
+      const data = await response.json();
+      
       const veraMsg: Message = {
         id: `vera-${Date.now()}`,
         role: 'vera',
-        content: `I understand you'd like to: "${userMsg.content}". I'm here to help you with executive decisions, strategic planning, and personal wellness. How can I assist you further?`,
+        content: data.response || 'Processing...',
         timestamp: new Date(),
       };
+      
       setMessages((prev) => [...prev, veraMsg]);
+    } catch (error) {
+      console.error('VERA error:', error);
+      const errorMsg: Message = {
+        id: `vera-${Date.now()}`,
+        role: 'vera',
+        content: 'System recalibration in progress. Please try again.',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMsg]);
+    } finally {
       setIsThinking(false);
-    }, 1500);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -98,16 +187,27 @@ export default function VeraExecutive() {
       }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '18px' }}>V</span>
+            <div 
+              className="breathing-orb"
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: 'radial-gradient(circle at 30% 30%, rgba(167, 139, 250, 0.9), rgba(124, 58, 237, 0.95), rgba(91, 33, 182, 1))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative'
+              }}>
+              <div style={{
+                position: 'absolute',
+                width: '60%',
+                height: '60%',
+                borderRadius: '50%',
+                background: 'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4), transparent)',
+                top: '15%',
+                left: '15%'
+              }}></div>
             </div>
             <div>
               <h1 style={{ color: '#fff', fontSize: '20px', fontWeight: '600', margin: 0 }}>VERA</h1>
@@ -144,17 +244,28 @@ export default function VeraExecutive() {
                 minHeight: '60vh', 
                 textAlign: 'center' 
               }}>
-                <div style={{
-                  width: '80px',
-                  height: '80px',
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: '24px'
-                }}>
-                  <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '32px' }}>V</span>
+                <div 
+                  className="breathing-orb"
+                  style={{
+                    width: '80px',
+                    height: '80px',
+                    borderRadius: '50%',
+                    background: 'radial-gradient(circle at 30% 30%, rgba(167, 139, 250, 0.9), rgba(124, 58, 237, 0.95), rgba(91, 33, 182, 1))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '24px',
+                    position: 'relative'
+                  }}>
+                  <div style={{
+                    position: 'absolute',
+                    width: '60%',
+                    height: '60%',
+                    borderRadius: '50%',
+                    background: 'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4), transparent)',
+                    top: '15%',
+                    left: '15%'
+                  }}></div>
                 </div>
                 <h2 style={{ fontSize: '32px', fontWeight: '300', color: '#fff', marginBottom: '12px' }}>
                   Welcome to VERA
@@ -212,20 +323,31 @@ export default function VeraExecutive() {
                       background: msg.role === 'user' ? '#7c3aed' : '#2a2a2a',
                       color: '#fff'
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'start', gap: '12px' }}>
+                      <div className="flex items-start gap-3">
                         {msg.role === 'vera' && (
-                          <div style={{
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '50%',
-                            background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                            marginTop: '4px'
-                          }}>
-                            <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '12px' }}>V</span>
+                          <div 
+                            className="breathing-orb"
+                            style={{
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '50%',
+                              background: 'radial-gradient(circle at 30% 30%, rgba(167, 139, 250, 0.9), rgba(124, 58, 237, 0.95), rgba(91, 33, 182, 1))',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              marginTop: '4px',
+                              position: 'relative'
+                            }}>
+                            <div style={{
+                              position: 'absolute',
+                              width: '60%',
+                              height: '60%',
+                              borderRadius: '50%',
+                              background: 'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4), transparent)',
+                              top: '15%',
+                              left: '15%'
+                            }}></div>
                           </div>
                         )}
                         <div style={{ flex: 1 }}>
@@ -244,16 +366,27 @@ export default function VeraExecutive() {
                   <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
                     <div style={{ maxWidth: '600px', borderRadius: '16px', padding: '12px 20px', background: '#2a2a2a' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '50%',
-                          background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}>
-                          <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '12px' }}>V</span>
+                        <div 
+                          className="breathing-orb"
+                          style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: 'radial-gradient(circle at 30% 30%, rgba(167, 139, 250, 0.9), rgba(124, 58, 237, 0.95), rgba(91, 33, 182, 1))',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            position: 'relative'
+                          }}>
+                          <div style={{
+                            position: 'absolute',
+                            width: '60%',
+                            height: '60%',
+                            borderRadius: '50%',
+                            background: 'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4), transparent)',
+                            top: '15%',
+                            left: '15%'
+                          }}></div>
                         </div>
                         <div style={{ display: 'flex', gap: '4px' }}>
                           <div style={{ width: '8px', height: '8px', background: '#7c3aed', borderRadius: '50%', animation: 'bounce 1.4s infinite ease-in-out both' }}></div>
