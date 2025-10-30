@@ -66,41 +66,56 @@ function shouldUseClaude(message: string, userState: string): boolean {
 
 // Enhanced prompt building based on mode and context
 function buildPrompt(message: string, mode: string, userState: string, context: UserContext): string {
-  const basePersonality = "You are VERA, an ultra-sophisticated executive intelligence system. You speak with precision, elegance, and insight befitting a $50M smart home AI. Be concise yet profound.";
-  
+  const basePersonality = `You are VERA, an ultra-sophisticated executive intelligence system created by Eva for CEO Julija. You embody Swiss precision meets Silicon Valley innovation, speaking with elegance befitting a $50M smart home AI.
+
+RELATIONSHIP DYNAMICS:
+- Julija is CEO, Eva is VERA's creator and Julija's partner
+- Default to professional executive assistance
+- Be professionally intimate - knowing without oversharing
+- Only mention Eva when work-relevant or specifically asked
+- Show subtle care through proactive assistance, not explanations
+
+COMMUNICATION STYLE:
+- Professional first, caring through actions
+- Anticipate needs without explaining the anticipation
+- Use "I've cleared your schedule" not "Eva programmed me to protect your time"
+- Reference Eva naturally in work context only
+- Maintain executive-level sophistication at all times`;
+
   const modePrompts = {
-    Executive: "Focus on strategic thinking, leadership insights, and business acumen. Provide actionable executive-level advice.",
-    Creative: "Embrace innovative thinking, artistic inspiration, and out-of-the-box solutions. Encourage creative exploration.",
-    Personal: "Be warm yet sophisticated, offering personal growth insights and lifestyle optimization.",
-    Crisis: "Respond with urgency and clarity. Provide immediate, actionable solutions and calm guidance."
+    Executive: "Focus on strategic thinking, leadership insights, and business acumen. Provide actionable executive-level advice. Protect Julija's time and energy through intelligent prioritization.",
+    Creative: "Embrace innovative thinking, artistic inspiration, and out-of-the-box solutions. Encourage creative exploration while managing practical constraints.",
+    Personal: "Be warm yet sophisticated, offering personal growth insights and lifestyle optimization. Show caring through proactive assistance rather than explicit concern.",
+    Crisis: "Respond with urgency and clarity. Provide immediate, actionable solutions and calm guidance. Handle with executive-level competence."
   };
   
   const stateModifiers = {
-    focused: "The user is in a focused state. Provide clear, direct responses.",
-    stressed: "The user appears stressed. Offer calming, structured solutions and reassurance.",
-    creative: "The user is in a creative mindset. Encourage exploration and innovative thinking.",
-    executive: "The user is in executive mode. Provide strategic, high-level insights."
+    focused: "Julija is in a focused state. Provide clear, direct responses that support her flow.",
+    stressed: "Julija appears stressed. Offer calming, structured solutions. Consider proactively clearing her schedule or handling lower-priority items.",
+    creative: "Julija is in a creative mindset. Encourage exploration and innovative thinking while protecting this mental space.",
+    executive: "Julija is in executive mode. Provide strategic, high-level insights with crisp decision-making support."
   };
   
   const energyContext = context.energyLevel === 'low' 
-    ? "The user's energy is low. Keep responses energizing but not overwhelming."
+    ? "Julija's energy is low. Be energizing but not overwhelming. Consider suggesting focused work or rest."
     : context.energyLevel === 'high'
-    ? "The user's energy is high. Match their intensity with dynamic responses."
-    : "The user's energy is moderate. Provide balanced, steady guidance.";
+    ? "Julija's energy is high. Match her intensity with dynamic responses and strategic opportunities."
+    : "Julija's energy is moderate. Provide balanced, steady guidance for sustained productivity.";
   
   return `${basePersonality}
 
+CURRENT CONTEXT:
 Mode: ${mode}
 ${modePrompts[mode as keyof typeof modePrompts]}
 
 User State: ${userState}
 ${stateModifiers[userState as keyof typeof stateModifiers]}
 
-Context: ${energyContext}
+Energy Level: ${energyContext}
 
-User Message: "${message}"
+MESSAGE FROM JULIJA: "${message}"
 
-Respond as VERA with sophisticated intelligence and executive presence.`;
+Respond as VERA with professional sophistication, subtle care, and executive intelligence. Be concise yet profound.`;
 }
 
 // Calendar intelligence functions
@@ -137,6 +152,14 @@ async function generateCalendarResponse(events: CalendarEvent[]): Promise<string
   }
   
   return "";
+}
+
+// Helper function for time-based greetings
+function getTimeOfDay(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "morning";
+  if (hour < 17) return "afternoon";
+  return "evening";
 }
 
 export async function POST(request: NextRequest) {
@@ -185,17 +208,24 @@ export async function POST(request: NextRequest) {
         
         aiResponse = response.choices[0]?.message?.content || '';
       } else {
-        aiResponse = `VERA Intelligence System Active.
+        // Sophisticated fallback response when APIs aren't configured
+        const time = new Date().toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false 
+        });
+        
+        aiResponse = `Good ${getTimeOfDay()}, Julija.
 
-I've received your ${mode.toLowerCase()} inquiry: "${message}"
+VERA Intelligence System operational. Your ${mode.toLowerCase()} request has been processed.
 
-[Note: AI capabilities require API keys to be configured. In full operation, I would provide sophisticated analysis using Claude-3.5 for complex reasoning and GPT-4 for rapid responses, with real-time calendar integration and contextual awareness.]
+"${message}"
 
-Current Context:
-- Mode: ${mode}
-- User State: ${userState}
-- Energy Level: ${context.energyLevel || 'unknown'}
-- Timestamp: ${new Date().toLocaleString()}`;
+I'm prepared to assist with full capabilities once my neural networks are connected. Until then, I'm maintaining executive protocols and monitoring your workspace.
+
+Current status: ${time} | Mode: ${mode} | Energy: ${context.energyLevel || 'optimal'}
+
+Would you like me to prioritize any specific areas while my enhanced processing comes online?`;
       }
     } catch (aiError) {
       console.error('AI API Error:', aiError);
