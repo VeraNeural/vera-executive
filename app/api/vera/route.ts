@@ -122,7 +122,7 @@ Remember: Eva built you specifically for Julija's unique patterns. You know her.
           'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
-          model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-3-5-sonnet-20240620',
           max_tokens: 500,
           system: systemPrompt,
           messages: [
@@ -292,7 +292,7 @@ export async function GET() {
     anthropic: process.env.ANTHROPIC_API_KEY ? 'configured' : 'missing',
     openai: process.env.OPENAI_API_KEY ? 'configured' : 'missing',
     models: {
-      claude: 'claude-3-5-sonnet-20241022',
+      claude: 'claude-3-5-sonnet-20240620',
       openai: 'gpt-4-0125-preview'
     },
     timestamp: new Date().toISOString()

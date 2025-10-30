@@ -4,7 +4,10 @@ export async function POST(request: NextRequest) {
   try {
     const { text, voice = "Rachel" } = await request.json();
     
+    console.log('🎤 TTS API called:', { textLength: text?.length, voice });
+    
     if (!text?.trim()) {
+      console.error('❌ TTS: No text provided');
       return NextResponse.json({
         error: "Text is required for voice synthesis",
         success: false
@@ -14,7 +17,14 @@ export async function POST(request: NextRequest) {
     const apiKey = process.env.ELEVENLABS_API_KEY;
     const voiceId = process.env.ELEVENLABS_VOICE_ID || getVoiceId(voice);
 
+    console.log('🔑 ElevenLabs config:', { 
+      hasApiKey: !!apiKey, 
+      voiceId, 
+      apiKeyLength: apiKey?.length 
+    });
+
     if (!apiKey) {
+      console.error('❌ TTS: ElevenLabs API key not configured');
       return NextResponse.json({
         error: "ElevenLabs API key not configured",
         success: false
@@ -22,6 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Call ElevenLabs API
+    console.log('🎙️ Calling ElevenLabs API...');
     const elevenlabsResponse = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
       {
@@ -46,15 +57,17 @@ export async function POST(request: NextRequest) {
 
     if (!elevenlabsResponse.ok) {
       const error = await elevenlabsResponse.text();
-      console.error('ElevenLabs error:', error);
+      console.error('❌ ElevenLabs API error:', elevenlabsResponse.status, error);
       return NextResponse.json({
         error: 'Voice synthesis failed',
-        success: false
+        success: false,
+        details: error
       }, { status: 500 });
     }
 
     // Return audio stream
     const audioBuffer = await elevenlabsResponse.arrayBuffer();
+    console.log('✅ Voice synthesis successful:', { audioSize: audioBuffer.byteLength });
     
     return new NextResponse(audioBuffer, {
       status: 200,
