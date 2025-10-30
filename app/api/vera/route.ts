@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
           'Authorization': `Bearer ${openaiKey}`
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo', // Changed to 3.5 for testing
+          model: 'gpt-3.5-turbo',
           messages: [
             {
               role: 'system',
@@ -103,12 +103,12 @@ export async function POST(request: NextRequest) {
         });
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Caught Error:', error);
     return NextResponse.json({
       response: "Connection error. Check console.",
       success: false,
-      error: error.message
+      error: error?.message || 'Unknown error'
     });
   }
 }
