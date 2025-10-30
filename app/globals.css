@@ -12,27 +12,29 @@ html {
   scroll-behavior: smooth;
   font-size: 16px;
   /* Prevent mobile bounce/overscroll */
-  position: fixed;
   width: 100%;
   height: 100%;
-  overflow: hidden;
+  height: -webkit-fill-available;
+  overscroll-behavior: none;
+  overflow-x: hidden;
 }
 
 body {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background: linear-gradient(180deg, #0A0A0A 0%, #0F0F0F 50%, #0A0A0A 100%);
   color: #FFFFFF;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-weight: 300;
   line-height: 1.6;
   overflow-x: hidden;
+  overflow-y: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /* Prevent mobile bounce/overscroll */
-  position: fixed;
   width: 100%;
-  height: 100%;
   overscroll-behavior: none;
+  overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -554,9 +556,18 @@ textarea::placeholder {
     -webkit-tap-highlight-color: transparent;
   }
   
+  /* Allow text selection in input fields */
+  input, textarea {
+    -webkit-user-select: text !important;
+    user-select: text !important;
+  }
+  
   /* Prevent iOS zoom on input focus */
   input, textarea, select {
     font-size: 16px !important;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
   }
   
   /* Disable pull-to-refresh */
@@ -568,6 +579,11 @@ textarea::placeholder {
   html, body {
     height: 100vh;
     height: -webkit-fill-available;
+  }
+  
+  /* Safe area for iOS notch */
+  .ios-safe-area {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
   }
 }
 

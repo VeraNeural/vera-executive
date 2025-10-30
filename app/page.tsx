@@ -2032,39 +2032,52 @@ export default function VeraExecutive() {
         {/* Input Area */}
         <div style={{
           borderTop: '1px solid rgba(80, 80, 90, 0.3)',
-          background: 'linear-gradient(180deg, rgba(30, 30, 35, 0.8) 0%, rgba(25, 25, 30, 0.95) 100%)',
+          background: 'linear-gradient(180deg, rgba(30, 30, 35, 0.98) 0%, rgba(25, 25, 30, 0.99) 100%)',
           backdropFilter: 'blur(20px)',
-          padding: '20px 24px',
+          padding: isMobile ? '12px 16px' : '20px 24px',
           flexShrink: 0,
-          boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.3)'
-        }}>
-          <div style={{ maxWidth: '900px', margin: '0 auto', width: '100%' }}>
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end' }}>
-              {/* Breathing Orb Input Icon */}
-              <div 
-                className="breathing-orb"
-                style={{
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '50%',
-                  background: 'radial-gradient(circle at 30% 30%, rgba(167, 139, 250, 0.9), rgba(124, 58, 237, 0.95), rgba(91, 33, 182, 1))',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  position: 'relative',
-                  boxShadow: '0 0 30px rgba(124, 58, 237, 0.6), 0 0 60px rgba(124, 58, 237, 0.3)',
-                }}>
-                <div style={{
-                  position: 'absolute',
-                  width: '60%',
-                  height: '60%',
-                  borderRadius: '50%',
-                  background: 'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.5), transparent)',
-                  top: '15%',
-                  left: '15%'
-                }}></div>
-              </div>
+          boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.3)',
+          position: 'relative',
+          zIndex: 100
+        }}
+        className="ios-safe-area">
+          <div style={{ 
+            maxWidth: isMobile ? '100%' : '900px', 
+            margin: '0 auto', 
+            width: '100%' 
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              gap: isMobile ? '8px' : '16px', 
+              alignItems: 'flex-end' 
+            }}>
+              {/* Breathing Orb Input Icon - Hide on mobile when keyboard is up */}
+              {!isMobile && (
+                <div 
+                  className="breathing-orb"
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '50%',
+                    background: 'radial-gradient(circle at 30% 30%, rgba(167, 139, 250, 0.9), rgba(124, 58, 237, 0.95), rgba(91, 33, 182, 1))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    position: 'relative',
+                    boxShadow: '0 0 30px rgba(124, 58, 237, 0.6), 0 0 60px rgba(124, 58, 237, 0.3)',
+                  }}>
+                  <div style={{
+                    position: 'absolute',
+                    width: '60%',
+                    height: '60%',
+                    borderRadius: '50%',
+                    background: 'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.5), transparent)',
+                    top: '15%',
+                    left: '15%'
+                  }}></div>
+                </div>
+              )}
               
               <div style={{ flex: 1 }}>
                 <textarea
@@ -2079,20 +2092,28 @@ export default function VeraExecutive() {
                     background: 'linear-gradient(135deg, rgba(50, 50, 55, 0.6) 0%, rgba(40, 40, 45, 0.8) 100%)',
                     color: '#fff',
                     border: '1px solid rgba(100, 100, 110, 0.3)',
-                    borderRadius: '16px',
-                    padding: '14px 20px',
-                    fontSize: '15px',
+                    borderRadius: isMobile ? '12px' : '16px',
+                    padding: isMobile ? '12px 16px' : '14px 20px',
+                    fontSize: isMobile ? '16px' : '15px',
                     resize: 'none',
-                    minHeight: '48px',
-                    maxHeight: '120px',
+                    minHeight: isMobile ? '44px' : '48px',
+                    maxHeight: isMobile ? '80px' : '120px',
                     outline: 'none',
                     fontFamily: 'inherit',
                     boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 10px rgba(124, 58, 237, 0.1)',
-                    transition: 'all 0.3s ease'
+                    transition: 'all 0.3s ease',
+                    WebkitAppearance: 'none',
+                    WebkitBorderRadius: isMobile ? '12px' : '16px'
                   }}
                   onFocus={(e) => {
                     e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.5)';
                     e.currentTarget.style.boxShadow = 'inset 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 20px rgba(124, 58, 237, 0.2)';
+                    // Scroll input into view on mobile
+                    if (isMobile) {
+                      setTimeout(() => {
+                        e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                      }, 300);
+                    }
                   }}
                   onBlur={(e) => {
                     e.currentTarget.style.borderColor = 'rgba(100, 100, 110, 0.3)';
@@ -2104,7 +2125,7 @@ export default function VeraExecutive() {
                 onClick={handleSend}
                 disabled={!message.trim() || isThinking}
                 style={{
-                  padding: '14px 28px',
+                  padding: isMobile ? '12px 20px' : '14px 28px',
                   background: (!message.trim() || isThinking) 
                     ? 'linear-gradient(135deg, #333, #222)' 
                     : 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 50%, #5b21b6 100%)',
@@ -2112,17 +2133,18 @@ export default function VeraExecutive() {
                   border: (!message.trim() || isThinking) 
                     ? '1px solid #444' 
                     : '1px solid rgba(124, 58, 237, 0.5)',
-                  borderRadius: '16px',
+                  borderRadius: isMobile ? '12px' : '16px',
                   fontWeight: '600',
                   cursor: (!message.trim() || isThinking) ? 'not-allowed' : 'pointer',
-                  height: '48px',
+                  height: isMobile ? '44px' : '48px',
                   transition: 'all 0.3s',
-                  fontSize: '14px',
+                  fontSize: isMobile ? '13px' : '14px',
                   letterSpacing: '0.5px',
                   textTransform: 'uppercase',
                   boxShadow: (!message.trim() || isThinking) 
                     ? 'none' 
                     : '0 4px 20px rgba(124, 58, 237, 0.4)',
+                  flexShrink: 0
                 }}
                 onMouseOver={(e) => {
                   if (!(!message.trim() || isThinking)) {
@@ -2139,32 +2161,34 @@ export default function VeraExecutive() {
                   }
                 }}
               >
-                Send
+                {isMobile ? '→' : 'Send'}
               </button>
             </div>
-            <div style={{ 
-              fontSize: '12px', 
-              color: '#666', 
-              marginTop: '8px', 
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px'
-            }}>
-              <span>VERA Executive Intelligence v2.0</span>
-              <div style={{
-                width: '6px',
-                height: '6px',
-                borderRadius: '50%',
-                background: voiceEnabled 
-                  ? 'radial-gradient(circle, #7c3aed, #5b21b6)'
-                  : 'radial-gradient(circle, #444, #222)',
-                boxShadow: voiceEnabled ? '0 0 6px rgba(124, 58, 237, 0.6)' : 'none'
-              }}></div>
-              <span style={{ color: voiceEnabled ? '#7c3aed' : '#444', fontSize: '11px' }}>
-                {voiceEnabled ? 'Voice Active' : 'Voice Off'}
-              </span>
-            </div>
+            {!isMobile && (
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#666', 
+                marginTop: '8px', 
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}>
+                <span>VERA Executive Intelligence v2.0</span>
+                <div style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: voiceEnabled 
+                    ? 'radial-gradient(circle, #7c3aed, #5b21b6)'
+                    : 'radial-gradient(circle, #444, #222)',
+                  boxShadow: voiceEnabled ? '0 0 6px rgba(124, 58, 237, 0.6)' : 'none'
+                }}></div>
+                <span style={{ color: voiceEnabled ? '#7c3aed' : '#444', fontSize: '11px' }}>
+                  {voiceEnabled ? 'Voice Active' : 'Voice Off'}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
