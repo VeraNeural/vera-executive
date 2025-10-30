@@ -9,7 +9,7 @@ interface Message {
   content: string;
   timestamp: string;
   mode?: string;
-  type?: 'text' | 'email' | 'decision' | 'design' | 'calendar';
+  type?: 'text' | 'email' | 'decision' | 'design' | 'calendar' | 'error';
   metadata?: any;
 }
 
@@ -231,73 +231,97 @@ export default function VeraExecutive() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, [mouseX, mouseY]);
 
-  // COMPLETE Voice Recognition Setup
+  // COMPLETE Voice Recognition Setup with Error Protection
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
-      recognitionRef.current.maxAlternatives = 3;
-      recognitionRef.current.lang = voiceLanguage;
+    try {
+      if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
+        const SpeechRecognition = (window as any).webkitSpeechRecognition;
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = true;
+        recognitionRef.current.interimResults = true;
+        recognitionRef.current.maxAlternatives = 3;
+        recognitionRef.current.lang = voiceLanguage;
 
-      recognitionRef.current.onstart = () => {
-        console.log('Voice recognition started');
-        setIsListening(true);
-      };
+        recognitionRef.current.onstart = () => {
+          console.log('Voice recognition started');
+          setIsListening(true);
+        };
 
-      recognitionRef.current.onresult = (event: any) => {
-        let finalTranscript = '';
-        let interimTranscript = '';
-        
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript + ' ';
-          } else {
-            interimTranscript += transcript;
-          }
-        }
-        
-        setInterimTranscript(interimTranscript);
-        
-        if (finalTranscript) {
-          setMessage(prev => prev + finalTranscript);
-          
-          // Auto-submit on certain phrases
-          if (finalTranscript.toLowerCase().includes('send') || 
-              finalTranscript.toLowerCase().includes('submit')) {
-            handleSubmit(message + finalTranscript);
-          }
-        }
-      };
-
-      recognitionRef.current.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
-        
-        if (event.error === 'no-speech') {
-          // Auto restart
-          setTimeout(() => {
-            if (recognitionRef.current && isListening) {
-              recognitionRef.current.start();
+        recognitionRef.current.onresult = (event: any) => {
+          try {
+            let finalTranscript = '';
+            let interimTranscript = '';
+            
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+              const transcript = event.results[i][0].transcript;
+              if (event.results[i].isFinal) {
+                finalTranscript += transcript + ' ';
+              } else {
+                interimTranscript += transcript;
+              }
             }
-          }, 1000);
-        } else if (event.error === 'audio-capture') {
-          alert('Microphone not found. Please check permissions.');
-          setIsListening(false);
-        }
-      };
+            
+            setInterimTranscript(interimTranscript);
+            
+            if (finalTranscript) {
+              setMessage(prev => prev + finalTranscript);
+              
+              // Auto-submit on certain phrases
+              if (finalTranscript.toLowerCase().includes('send') || 
+                  finalTranscript.toLowerCase().includes('submit')) {
+                handleSubmit(message + finalTranscript);
+              }
+            }
+          } catch (resultError) {
+            console.error('Speech result processing error:', resultError);
+          }
+        };
 
-      recognitionRef.current.onend = () => {
-        if (isListening) {
-          // Restart if still supposed to be listening
-          recognitionRef.current.start();
-        } else {
-          setIsListening(false);
-        }
-      };
-    } else {
-      console.warn('Speech recognition not supported');
+        recognitionRef.current.onerror = (event: any) => {
+          console.error('Speech recognition error:', event.error);
+          
+          try {
+            if (event.error === 'no-speech') {
+              // Auto restart
+              setTimeout(() => {
+                if (recognitionRef.current && isListening) {
+                  recognitionRef.current.start();
+                }
+              }, 1000);
+            } else if (event.error === 'audio-capture') {
+              console.warn('Microphone access denied');
+              setIsListening(false);
+            } else if (event.error === 'not-allowed') {
+              console.warn('Speech recognition permission denied');
+              setIsListening(false);
+            } else {
+              setIsListening(false);
+            }
+          } catch (errorHandleError) {
+            console.error('Error handling speech error:', errorHandleError);
+            setIsListening(false);
+          }
+        };
+
+        recognitionRef.current.onend = () => {
+          try {
+            if (isListening) {
+              // Restart if still supposed to be listening
+              recognitionRef.current.start();
+            } else {
+              setIsListening(false);
+            }
+          } catch (endError) {
+            console.error('Speech recognition end error:', endError);
+            setIsListening(false);
+          }
+        };
+      } else {
+        console.warn('Speech recognition not supported');
+      }
+    } catch (speechError) {
+      console.error('Speech recognition setup error:', speechError);
+      // Continue without speech recognition
     }
   }, [voiceLanguage, isListening]);
 
@@ -1045,7 +1069,15 @@ export default function VeraExecutive() {
         })
       });
 
+      if (!response.ok) {
+        throw new Error(`API response error: ${response.status} ${response.statusText}`);
+      }
+
       const data = await response.json();
+      
+      if (!data.response) {
+        throw new Error('Invalid API response format');
+      }
       
       const veraMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -1060,31 +1092,52 @@ export default function VeraExecutive() {
       
       // Speak response if enabled
       if (isVoiceEnabled && data.response) {
-        await speakText(data.response);
+        try {
+          await speakText(data.response);
+        } catch (voiceError) {
+          console.error('Voice synthesis error:', voiceError);
+          // Continue without voice
+        }
       }
       
       // Handle any actions
       if (data.actions) {
-        for (const action of data.actions) {
-          if (action.type === 'calendar') {
-            setShowCalendarPanel(true);
-          } else if (action.type === 'email') {
-            await generateEmail(action.recipient, action.subject, action.context);
+        try {
+          for (const action of data.actions) {
+            if (action.type === 'calendar') {
+              setShowCalendarPanel(true);
+            } else if (action.type === 'email') {
+              await generateEmail(action.recipient, action.subject, action.context);
+            }
           }
+        } catch (actionError) {
+          console.error('Action handling error:', actionError);
+          // Continue without actions
         }
       }
       
     } catch (error) {
-      console.error('VERA Error:', error);
+      console.error('VERA API Error:', error);
       
-      const errorMessage: Message = {
+      // Determine error type and provide appropriate fallback
+      let errorMessage = 'VERA is recalibrating. ';
+      
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        errorMessage += 'Network connection issue detected.';
+      } else if (error instanceof Error && error.message.includes('API response error')) {
+        errorMessage += 'Server temporarily unavailable.';
+      } else {
+        errorMessage += 'System diagnostics in progress.';
+      }
+      
+      const fallbackMessage: Message = {
         id: Date.now().toString(),
         role: 'vera',
-        content: 'Connection issue. Recalibrating.',
+        content: errorMessage,
         timestamp: new Date().toISOString(),
-        type: 'text'
+        type: 'error'
       };
-      setConversation(prev => [...prev, errorMessage]);
+      setConversation(prev => [...prev, fallbackMessage]);
     } finally {
       setIsProcessing(false);
     }
@@ -1193,7 +1246,7 @@ export default function VeraExecutive() {
   // Add this check BEFORE your main return
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#0A0A0A] to-[#0F0F0F]">
+      <div className="min-h-screen bg-gradient-to-b from-[#0A0A0A] to-[#0F0F0F] text-white font-sans">
         <div className="flex items-center justify-center h-screen">
           <div className="text-white opacity-50">Loading VERA...</div>
         </div>
@@ -1201,239 +1254,249 @@ export default function VeraExecutive() {
     );
   }
 
-  // Your existing return with ALL the features stays here!
+  // EMERGENCY ERROR BOUNDARY WRAPPER
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
-      {/* Header */}
-      <header className="flex items-center justify-between p-6 border-b border-purple-500/20">
-        <div className="flex items-center gap-4">
-          <motion.div
-            className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-purple-600"
-            animate={{ scale: [1, 1.1, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-          <div>
-            <h1 className="text-xl font-bold">VERA</h1>
-            <p className="text-sm text-purple-400">Executive Intelligence</p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <div className="text-sm font-mono">
-              {currentTime ? currentTime.toLocaleTimeString('en-US', { hour12: false }) : '--:--'}
-            </div>
-            <div className="text-xs text-purple-400 capitalize">
-              Energy: {juliaEnergy}
-            </div>
-          </div>
-          
-          <motion.button
-            onClick={() => setShowSettingsPanel(true)}
-            className="p-2 hover:bg-purple-500/20 rounded-lg transition-colors"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </motion.button>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="flex-1 p-6">
-        {/* Mode Selector */}
-        <div className="flex gap-2 mb-6">
-          {(['executive', 'creative', 'personal', 'crisis'] as const).map((mode) => (
-            <button
-              key={mode}
-              onClick={() => setExecutiveMode(mode)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                executiveMode === mode
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-              }`}
-            >
-              {mode.charAt(0).toUpperCase() + mode.slice(1)}
-            </button>
-          ))}
-        </div>
-
-        {/* Conversation */}
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-gray-800/50 rounded-xl p-6 h-96 overflow-y-auto mb-6 space-y-4">
-            {conversation.length === 0 ? (
-              <div className="text-center text-gray-400 mt-20">
+    <div className="min-h-screen bg-gradient-to-b from-[#0A0A0A] to-[#0F0F0F] text-white font-sans">
+      {mounted ? (
+        <>
+          <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
+            {/* Header */}
+            <header className="flex items-center justify-between p-6 border-b border-purple-500/20">
+              <div className="flex items-center gap-4">
                 <motion.div
-                  className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center"
+                  className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-purple-600"
                   animate={{ scale: [1, 1.1, 1] }}
                   transition={{ duration: 2, repeat: Infinity }}
-                >
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </motion.div>
-                <h3 className="text-lg font-medium mb-2">VERA Executive Intelligence</h3>
-                <p>Ready to assist with executive decisions, creative projects, and strategic planning.</p>
+                />
+                <div>
+                  <h1 className="text-xl font-bold">VERA</h1>
+                  <p className="text-sm text-purple-400">Executive Intelligence</p>
+                </div>
               </div>
-            ) : (
-              <>
-                {conversation.map((msg) => (
-                  <motion.div
-                    key={msg.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                      msg.role === 'user'
+              
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <div className="text-sm font-mono">
+                    {currentTime ? currentTime.toLocaleTimeString('en-US', { hour12: false }) : '--:--'}
+                  </div>
+                  <div className="text-xs text-purple-400 capitalize">
+                    Energy: {juliaEnergy}
+                  </div>
+                </div>
+                
+                <motion.button
+                  onClick={() => setShowSettingsPanel(true)}
+                  className="p-2 hover:bg-purple-500/20 rounded-lg transition-colors"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </motion.button>
+              </div>
+            </header>
+
+            {/* Main Content */}
+            <main className="flex-1 p-6">
+              {/* Mode Selector */}
+              <div className="flex gap-2 mb-6">
+                {(['executive', 'creative', 'personal', 'crisis'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setExecutiveMode(mode)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      executiveMode === mode
                         ? 'bg-purple-600 text-white'
-                        : 'bg-gray-700 text-gray-100'
-                    }`}>
-                      <p className="text-sm">{msg.content}</p>
-                      <span className="text-xs opacity-70">
-                        {formatTime(msg.timestamp)}
-                      </span>
-                    </div>
-                  </motion.div>
+                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    }`}
+                  >
+                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                  </button>
                 ))}
-                
-                {/* Interim transcript */}
-                {interimTranscript && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex justify-end"
-                  >
-                    <div className="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-purple-600/50 text-white">
-                      <p className="text-sm italic">{interimTranscript}</p>
-                    </div>
-                  </motion.div>
-                )}
-                
-                {/* Processing indicator */}
-                {isProcessing && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex justify-start"
-                  >
-                    <div className="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-gray-700">
-                      <div className="flex items-center gap-2">
-                        <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                          <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                        </div>
-                        <span className="text-sm text-gray-300">VERA is thinking...</span>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
+              </div>
 
-          {/* Input Area */}
-          <div className="bg-gray-800 rounded-xl p-4">
-            <div className="flex gap-3">
-              <input
-                type="text"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-                placeholder="Ask VERA anything..."
-                className="flex-1 bg-gray-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                disabled={isProcessing}
-              />
-              
-              <motion.button
-                onClick={() => isListening ? stopListening() : startListening()}
-                className={`p-3 rounded-lg transition-colors ${
-                  isListening 
-                    ? 'bg-red-600 hover:bg-red-700' 
-                    : 'bg-purple-600 hover:bg-purple-700'
-                }`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                disabled={isProcessing}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  {isListening ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              {/* Conversation */}
+              <div className="max-w-4xl mx-auto">
+                <div className="bg-gray-800/50 rounded-xl p-6 h-96 overflow-y-auto mb-6 space-y-4">
+                  {conversation.length === 0 ? (
+                    <div className="text-center text-gray-400 mt-20">
+                      <motion.div
+                        className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center"
+                        animate={{ scale: [1, 1.1, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                      </motion.div>
+                      <h3 className="text-lg font-medium mb-2">VERA Executive Intelligence</h3>
+                      <p>Ready to assist with executive decisions, creative projects, and strategic planning.</p>
+                    </div>
                   ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    <>
+                      {conversation.map((msg) => (
+                        <motion.div
+                          key={msg.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                            msg.role === 'user'
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-gray-700 text-gray-100'
+                          }`}>
+                            <p className="text-sm">{msg.content}</p>
+                            <span className="text-xs opacity-70">
+                              {formatTime(msg.timestamp)}
+                            </span>
+                          </div>
+                        </motion.div>
+                      ))}
+                      
+                      {/* Interim transcript */}
+                      {interimTranscript && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="flex justify-end"
+                        >
+                          <div className="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-purple-600/50 text-white">
+                            <p className="text-sm italic">{interimTranscript}</p>
+                          </div>
+                        </motion.div>
+                      )}
+                      
+                      {/* Processing indicator */}
+                      {isProcessing && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="flex justify-start"
+                        >
+                          <div className="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-gray-700">
+                            <div className="flex items-center gap-2">
+                              <div className="flex space-x-1">
+                                <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"></div>
+                                <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                              </div>
+                              <span className="text-sm text-gray-300">VERA is thinking...</span>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </>
                   )}
-                </svg>
-              </motion.button>
-              
-              <motion.button
-                onClick={() => handleSubmit()}
-                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                disabled={isProcessing || !message.trim()}
-              >
-                Send
-              </motion.button>
-            </div>
-            
-            {/* Quick Actions */}
-            <div className="flex gap-2 mt-3">
-              <button
-                onClick={() => setShowEmailComposer(true)}
-                className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
-              >
-                Email
-              </button>
-              <button
-                onClick={() => setShowCalendarPanel(true)}
-                className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
-              >
-                Calendar
-              </button>
-              <button
-                onClick={() => setShowDesignPanel(true)}
-                className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
-              >
-                Design
-              </button>
-              <button
-                onClick={() => setShowBiometricsPanel(true)}
-                className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
-              >
-                Health
-              </button>
-            </div>
-          </div>
-        </div>
-      </main>
+                  <div ref={messagesEndRef} />
+                </div>
 
-      {/* Hidden file inputs */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".json"
-        onChange={(e) => e.target.files?.[0] && importData(e.target.files[0])}
-        className="hidden"
-      />
-      <input
-        ref={calendarInputRef}
-        type="file"
-        accept=".ics,.csv"
-        onChange={(e) => e.target.files?.[0] && handleCalendarImport(e.target.files[0])}
-        className="hidden"
-      />
-      <input
-        ref={imageInputRef}
-        type="file"
-        accept="image/*"
-        onChange={(e) => e.target.files?.[0] && extractColors(e.target.files[0])}
-        className="hidden"
-      />
+                {/* Input Area */}
+                <div className="bg-gray-800 rounded-xl p-4">
+                  <div className="flex gap-3">
+                    <input
+                      type="text"
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
+                      placeholder="Ask VERA anything..."
+                      className="flex-1 bg-gray-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      disabled={isProcessing}
+                    />
+                    
+                    <motion.button
+                      onClick={() => isListening ? stopListening() : startListening()}
+                      className={`p-3 rounded-lg transition-colors ${
+                        isListening 
+                          ? 'bg-red-600 hover:bg-red-700' 
+                          : 'bg-purple-600 hover:bg-purple-700'
+                      }`}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      disabled={isProcessing}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {isListening ? (
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        ) : (
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                        )}
+                      </svg>
+                    </motion.button>
+                    
+                    <motion.button
+                      onClick={() => handleSubmit()}
+                      className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      disabled={isProcessing || !message.trim()}
+                    >
+                      Send
+                    </motion.button>
+                  </div>
+                  
+                  {/* Quick Actions */}
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => setShowEmailComposer(true)}
+                      className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+                    >
+                      Email
+                    </button>
+                    <button
+                      onClick={() => setShowCalendarPanel(true)}
+                      className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+                    >
+                      Calendar
+                    </button>
+                    <button
+                      onClick={() => setShowDesignPanel(true)}
+                      className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+                    >
+                      Design
+                    </button>
+                    <button
+                      onClick={() => setShowBiometricsPanel(true)}
+                      className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+                    >
+                      Health
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </main>
+
+            {/* Hidden file inputs */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={(e) => e.target.files?.[0] && importData(e.target.files[0])}
+              className="hidden"
+            />
+            <input
+              ref={calendarInputRef}
+              type="file"
+              accept=".ics,.csv"
+              onChange={(e) => e.target.files?.[0] && handleCalendarImport(e.target.files[0])}
+              className="hidden"
+            />
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => e.target.files?.[0] && extractColors(e.target.files[0])}
+              className="hidden"
+            />
+          </div>
+        </>
+      ) : (
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-white opacity-50">Loading VERA...</div>
+        </div>
+      )}
     </div>
   );
 }
