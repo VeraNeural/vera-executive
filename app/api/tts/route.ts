@@ -11,29 +11,58 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    if (!process.env.ELEVENLABS_API_KEY) {
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+    const voiceId = process.env.ELEVENLABS_VOICE_ID || getVoiceId(voice);
+
+    if (!apiKey) {
       return NextResponse.json({
-        error: "ElevenLabs integration ready - add API key to enable premium voice synthesis",
-        success: false,
-        fallback: true,
-        voice: voice,
-        text: text
-      });
+        error: "ElevenLabs API key not configured",
+        success: false
+      }, { status: 500 });
     }
 
-    // For now, return a placeholder response until ElevenLabs is properly configured
-    // This prevents build errors while keeping the feature ready
-    return NextResponse.json({
-      error: "ElevenLabs voice synthesis ready - configure API key to enable VERA's voice",
-      success: false,
-      fallback: true,
-      voice: voice,
-      text: text,
-      voiceId: getVoiceId(voice)
-    });
+    // Call ElevenLabs API
+    const elevenlabsResponse = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+      {
+        method: 'POST',
+        headers: {
+          'Accept': 'audio/mpeg',
+          'Content-Type': 'application/json',
+          'xi-api-key': apiKey
+        },
+        body: JSON.stringify({
+          text: text.substring(0, 5000), // Limit to 5000 chars
+          model_id: 'eleven_monolingual_v1',
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75,
+            style: 0.0,
+            use_speaker_boost: true
+          }
+        })
+      }
+    );
 
-    // TODO: Implement actual ElevenLabs integration once API key is configured
-    // The integration is prepared and ready - just needs the API key
+    if (!elevenlabsResponse.ok) {
+      const error = await elevenlabsResponse.text();
+      console.error('ElevenLabs error:', error);
+      return NextResponse.json({
+        error: 'Voice synthesis failed',
+        success: false
+      }, { status: 500 });
+    }
+
+    // Return audio stream
+    const audioBuffer = await elevenlabsResponse.arrayBuffer();
+    
+    return new NextResponse(audioBuffer, {
+      status: 200,
+      headers: {
+        'Content-Type': 'audio/mpeg',
+        'Content-Length': audioBuffer.byteLength.toString(),
+      },
+    });
 
   } catch (error) {
     console.error('TTS Route Error:', error);

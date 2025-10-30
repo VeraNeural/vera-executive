@@ -21,9 +21,19 @@ export async function POST(request: NextRequest) {
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
     const openaiKey = process.env.OPENAI_API_KEY;
     
+    console.log('🔍 VERA API called:', { 
+      message: message?.substring(0, 50), 
+      mode,
+      hasAnthropicKey: !!anthropicKey,
+      hasOpenAIKey: !!openaiKey,
+      anthropicKeyLength: anthropicKey?.length,
+      openaiKeyLength: openaiKey?.length
+    });
+    
     if (!anthropicKey || !openaiKey) {
+      console.error('❌ Missing API keys:', { anthropicKey: !!anthropicKey, openaiKey: !!openaiKey });
       return NextResponse.json({
-        response: "Configuration needed.",
+        response: "Configuration needed. Check API keys.",
         success: false
       });
     }
@@ -103,6 +113,7 @@ Remember: Eva built you specifically for Julija's unique patterns. You know her.
 
     // Try Claude first (better at nuance)
     try {
+      console.log('🤖 Calling Anthropic Claude...');
       const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -126,6 +137,7 @@ Remember: Eva built you specifically for Julija's unique patterns. You know her.
 
       if (claudeResponse.ok) {
         const claudeData = await claudeResponse.json();
+        console.log('✅ Claude response received:', { hasContent: !!claudeData.content?.[0]?.text });
         
         if (claudeData.content?.[0]?.text) {
           // Analyze response for actions
@@ -146,13 +158,18 @@ Remember: Eva built you specifically for Julija's unique patterns. You know her.
             actions
           });
         }
+      } else {
+        const errorText = await claudeResponse.text();
+        console.error('❌ Claude error:', claudeResponse.status, errorText);
       }
     } catch (claudeError) {
-      console.log('Claude failed, trying OpenAI...');
+      console.error('❌ Claude failed:', claudeError);
+      console.log('🔄 Trying OpenAI...');
     }
 
     // Fallback to OpenAI
     try {
+      console.log('🤖 Calling OpenAI GPT-4...');
       const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -178,6 +195,7 @@ Remember: Eva built you specifically for Julija's unique patterns. You know her.
 
       if (openaiResponse.ok) {
         const openaiData = await openaiResponse.json();
+        console.log('✅ OpenAI response received:', { hasContent: !!openaiData.choices?.[0]?.message?.content });
         
         if (openaiData.choices?.[0]?.message?.content) {
           const response = openaiData.choices[0].message.content;
@@ -197,12 +215,16 @@ Remember: Eva built you specifically for Julija's unique patterns. You know her.
             actions
           });
         }
+      } else {
+        const errorText = await openaiResponse.text();
+        console.error('❌ OpenAI error:', openaiResponse.status, errorText);
       }
     } catch (openaiError) {
-      console.log('OpenAI also failed');
+      console.error('❌ OpenAI also failed:', openaiError);
     }
 
     // Both failed
+    console.error('❌ Both AI services failed');
     return NextResponse.json({
       response: mode === 'crisis' 
         ? '1. Check internet connection. 2. Restart system. 3. Text Eva if persists.'
