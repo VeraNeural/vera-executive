@@ -58,6 +58,29 @@ if (typeof document !== 'undefined') {
       animation: breathe 3s ease-in-out infinite;
       position: relative;
     }
+
+    /* Mobile Optimizations */
+    @media (max-width: 768px) {
+      .mobile-panel {
+        width: 100% !important;
+        max-width: 100vw !important;
+      }
+      
+      .mobile-sidebar {
+        width: 60px !important;
+      }
+      
+      .mobile-hide {
+        display: none !important;
+      }
+    }
+
+    /* iOS Safari fixes */
+    @supports (-webkit-touch-callout: none) {
+      .ios-safe-area {
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+    }
   `;
   document.head.appendChild(style);
 }
@@ -73,11 +96,20 @@ export default function VeraExecutive() {
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activePanel, setActivePanel] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     setMounted(true);
+    
+    // Detect mobile
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
     // Initialize audio element
     if (typeof window !== 'undefined') {
       audioRef.current = new Audio();
@@ -148,7 +180,7 @@ export default function VeraExecutive() {
           context: {
             energy: 'medium',
             currentTime: new Date().toISOString(),
-            recentMessages: messages.slice(-3).map(m => ({
+            recentMessages: messages.slice(-15).map(m => ({
               role: m.role,
               content: m.content
             }))
@@ -284,7 +316,7 @@ export default function VeraExecutive() {
   return (
     <div style={{ 
       minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #0a0a0a 0%, #1a0a1a 25%, #0d0520 50%, #1a0a1a 75%, #0a0a0a 100%)',
+      background: 'linear-gradient(135deg, #1a1a1a 0%, #252525 50%, #1a1a1a 100%)',
       display: 'flex',
       flexDirection: 'row',
       width: '100%',
@@ -294,17 +326,18 @@ export default function VeraExecutive() {
     }}>
       {/* Sidebar */}
       <div style={{
-        width: sidebarOpen ? '280px' : '60px',
-        background: 'linear-gradient(180deg, rgba(20, 10, 30, 0.95) 0%, rgba(10, 5, 20, 0.98) 100%)',
-        borderRight: '1px solid rgba(124, 58, 237, 0.2)',
+        width: sidebarOpen && !isMobile ? '280px' : '60px',
+        background: 'linear-gradient(180deg, rgba(30, 30, 35, 0.95) 0%, rgba(25, 25, 30, 0.98) 100%)',
+        borderRight: '1px solid rgba(80, 80, 90, 0.3)',
         transition: 'width 0.3s ease',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
         position: 'relative',
         backdropFilter: 'blur(20px)',
-        boxShadow: sidebarOpen ? '0 0 40px rgba(124, 58, 237, 0.15)' : 'none'
-      }}>
+        boxShadow: sidebarOpen ? '0 0 40px rgba(0, 0, 0, 0.2)' : 'none'
+      }}
+      className={isMobile ? 'mobile-sidebar' : ''}>
         {/* Toggle Button */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -461,12 +494,12 @@ export default function VeraExecutive() {
             </button>
 
             {[
-              { label: 'Email', id: 'email', color: '#7c3aed', glow: 'rgba(124, 58, 237, 0.4)' },
-              { label: 'Calendar', id: 'calendar', color: '#c9a961', glow: 'rgba(201, 169, 97, 0.4)' },
-              { label: 'Design', id: 'design', color: '#ff69b4', glow: 'rgba(255, 105, 180, 0.4)' },
-              { label: 'Biometrics', id: 'biometrics', color: '#00ced1', glow: 'rgba(0, 206, 209, 0.4)' },
-              { label: 'Decisions', id: 'decision', color: '#ff4500', glow: 'rgba(255, 69, 0, 0.4)' },
-              { label: 'Settings', id: 'settings', color: '#888', glow: 'rgba(136, 136, 136, 0.4)' },
+              { label: 'Email', id: 'email', color: '#999', glow: 'rgba(153, 153, 153, 0.3)' },
+              { label: 'Calendar', id: 'calendar', color: '#999', glow: 'rgba(153, 153, 153, 0.3)' },
+              { label: 'Design', id: 'design', color: '#999', glow: 'rgba(153, 153, 153, 0.3)' },
+              { label: 'Biometrics', id: 'biometrics', color: '#999', glow: 'rgba(153, 153, 153, 0.3)' },
+              { label: 'Decisions', id: 'decision', color: '#999', glow: 'rgba(153, 153, 153, 0.3)' },
+              { label: 'Settings', id: 'settings', color: '#999', glow: 'rgba(153, 153, 153, 0.3)' },
             ].map((panel) => (
               <button
                 key={panel.id}
@@ -477,20 +510,20 @@ export default function VeraExecutive() {
                   gap: '12px',
                   padding: '12px',
                   background: activePanel === panel.id 
-                    ? `linear-gradient(135deg, ${panel.color}33 0%, ${panel.color}11 100%)` 
+                    ? 'rgba(255, 255, 255, 0.08)' 
                     : 'transparent',
-                  border: `1px solid ${activePanel === panel.id ? panel.color + '55' : 'transparent'}`,
+                  border: `1px solid ${activePanel === panel.id ? 'rgba(255, 255, 255, 0.15)' : 'transparent'}`,
                   borderRadius: '8px',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
-                  color: activePanel === panel.id ? panel.color : '#999',
+                  color: activePanel === panel.id ? '#fff' : '#999',
                   justifyContent: sidebarOpen ? 'flex-start' : 'center',
                   width: '100%'
                 }}
                 onMouseOver={(e) => {
                   if (activePanel !== panel.id) {
-                    e.currentTarget.style.background = `${panel.color}11`;
-                    e.currentTarget.style.borderColor = `${panel.color}33`;
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
                   }
                 }}
                 onMouseOut={(e) => {
@@ -507,12 +540,14 @@ export default function VeraExecutive() {
                     width: '20px',
                     height: '20px',
                     borderRadius: '50%',
-                    background: `radial-gradient(circle at 30% 30%, ${panel.color}dd, ${panel.color}aa, ${panel.color})`,
+                    background: activePanel === panel.id 
+                      ? 'radial-gradient(circle at 30% 30%, #bbb, #999, #777)'
+                      : 'radial-gradient(circle at 30% 30%, #777, #666, #555)',
                     flexShrink: 0,
                     position: 'relative',
                     boxShadow: activePanel === panel.id 
-                      ? `0 0 15px ${panel.glow}, 0 0 25px ${panel.glow}` 
-                      : `0 0 8px ${panel.glow}`,
+                      ? '0 0 10px rgba(255, 255, 255, 0.2)' 
+                      : 'none',
                     transition: 'all 0.3s'
                   }}>
                   <div style={{
@@ -525,30 +560,7 @@ export default function VeraExecutive() {
                     left: '15%'
                   }}></div>
                   {/* Neural connections when active */}
-                  {activePanel === panel.id && (
-                    <>
-                      <div style={{
-                        position: 'absolute',
-                        width: '1px',
-                        height: '8px',
-                        background: `linear-gradient(180deg, ${panel.color}, transparent)`,
-                        top: '-8px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        opacity: 0.6
-                      }}></div>
-                      <div style={{
-                        position: 'absolute',
-                        width: '1px',
-                        height: '8px',
-                        background: `linear-gradient(0deg, ${panel.color}, transparent)`,
-                        bottom: '-8px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        opacity: 0.6
-                      }}></div>
-                    </>
-                  )}
+
                 </div>
                 {sidebarOpen && (
                   <span style={{ fontSize: '14px', fontWeight: '500' }}>{panel.label}</span>
@@ -575,21 +587,22 @@ export default function VeraExecutive() {
               position: 'absolute',
               top: 0,
               right: 0,
-              width: '400px',
+              width: isMobile ? '100%' : '400px',
               height: '100%',
-              background: 'linear-gradient(135deg, rgba(20, 10, 30, 0.98) 0%, rgba(10, 5, 20, 0.99) 100%)',
-              borderLeft: '1px solid rgba(124, 58, 237, 0.3)',
+              background: 'linear-gradient(135deg, rgba(30, 30, 35, 0.98) 0%, rgba(25, 25, 30, 0.99) 100%)',
+              borderLeft: '1px solid rgba(80, 80, 90, 0.3)',
               backdropFilter: 'blur(20px)',
               zIndex: 50,
               boxShadow: '-20px 0 60px rgba(0, 0, 0, 0.5)',
               animation: 'slideInRight 0.3s ease-out',
               overflow: 'auto'
             }}
+            className="mobile-panel"
           >
             {/* Panel Header */}
             <div style={{
               padding: '24px',
-              borderBottom: '1px solid rgba(124, 58, 237, 0.2)',
+              borderBottom: '1px solid rgba(80, 80, 90, 0.3)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
@@ -599,26 +612,8 @@ export default function VeraExecutive() {
                   width: '24px',
                   height: '24px',
                   borderRadius: '50%',
-                  background: `radial-gradient(circle at 30% 30%, ${
-                    activePanel === 'email' ? '#7c3aeddd' :
-                    activePanel === 'calendar' ? '#c9a961dd' :
-                    activePanel === 'design' ? '#ff69b4dd' :
-                    activePanel === 'biometrics' ? '#00ced1dd' :
-                    activePanel === 'decision' ? '#ff4500dd' : '#888dd'
-                  }, ${
-                    activePanel === 'email' ? '#7c3aed' :
-                    activePanel === 'calendar' ? '#c9a961' :
-                    activePanel === 'design' ? '#ff69b4' :
-                    activePanel === 'biometrics' ? '#00ced1' :
-                    activePanel === 'decision' ? '#ff4500' : '#888'
-                  })`,
-                  boxShadow: `0 0 20px ${
-                    activePanel === 'email' ? 'rgba(124, 58, 237, 0.4)' :
-                    activePanel === 'calendar' ? 'rgba(201, 169, 97, 0.4)' :
-                    activePanel === 'design' ? 'rgba(255, 105, 180, 0.4)' :
-                    activePanel === 'biometrics' ? 'rgba(0, 206, 209, 0.4)' :
-                    activePanel === 'decision' ? 'rgba(255, 69, 0, 0.4)' : 'rgba(136, 136, 136, 0.4)'
-                  }`,
+                  background: 'radial-gradient(circle at 30% 30%, #bbb, #999, #777)',
+                  boxShadow: '0 0 10px rgba(255, 255, 255, 0.2)',
                   position: 'relative'
                 }}>
                   <div style={{
@@ -748,6 +743,84 @@ export default function VeraExecutive() {
                   <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '20px', color: '#7c3aed' }}>
                     Email Intelligence
                   </h3>
+                  
+                  {/* Email Automation Section */}
+                  <div style={{ 
+                    padding: '16px',
+                    background: 'rgba(124, 58, 237, 0.08)',
+                    border: '1px solid rgba(124, 58, 237, 0.2)',
+                    borderRadius: '12px',
+                    marginBottom: '20px'
+                  }}>
+                    <div style={{ fontSize: '12px', color: '#999', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      VERA Email Automation
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#ccc', lineHeight: '1.6', marginBottom: '12px' }}>
+                      Let VERA draft, review, and send emails on your behalf. Just describe what you need and VERA will handle the rest.
+                    </div>
+                    <button
+                      onClick={() => {
+                        setActivePanel(null);
+                        setMessage('Draft an email to ');
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.3), rgba(167, 139, 250, 0.2))',
+                        border: '1px solid rgba(124, 58, 237, 0.4)',
+                        borderRadius: '8px',
+                        color: '#a78bfa',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        marginBottom: '8px'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(124, 58, 237, 0.4), rgba(167, 139, 250, 0.3))';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(124, 58, 237, 0.3), rgba(167, 139, 250, 0.2))';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      Draft New Email with VERA
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActivePanel(null);
+                        setMessage('Reply to the urgent email from Sarah about ');
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        background: 'rgba(124, 58, 237, 0.15)',
+                        border: '1px solid rgba(124, 58, 237, 0.3)',
+                        borderRadius: '8px',
+                        color: '#a78bfa',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.background = 'rgba(124, 58, 237, 0.25)';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'rgba(124, 58, 237, 0.15)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      Auto-Reply to Selected Email
+                    </button>
+                  </div>
+
+                  {/* Inbox */}
+                  <div style={{ fontSize: '12px', color: '#999', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Inbox
+                  </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {[
                       { 
@@ -795,6 +868,10 @@ export default function VeraExecutive() {
                         e.currentTarget.style.background = 'rgba(124, 58, 237, 0.08)';
                         e.currentTarget.style.transform = 'translateX(0)';
                       }}
+                      onClick={() => {
+                        setActivePanel(null);
+                        setMessage(`Help me respond to this email from ${email.from} about "${email.subject}"`);
+                      }}
                       >
                         {email.urgent && (
                           <div style={{
@@ -837,21 +914,127 @@ export default function VeraExecutive() {
 
               {activePanel === 'calendar' && (
                 <div style={{ color: '#fff' }}>
-                  <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#c9a961' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '20px', color: '#c9a961' }}>
                     Executive Calendar
                   </h3>
+                  
+                  {/* VERA Calendar Automation */}
+                  <div style={{ 
+                    padding: '16px',
+                    background: 'rgba(201, 169, 97, 0.08)',
+                    border: '1px solid rgba(201, 169, 97, 0.2)',
+                    borderRadius: '12px',
+                    marginBottom: '20px'
+                  }}>
+                    <div style={{ fontSize: '12px', color: '#999', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      VERA Calendar Intelligence
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#ccc', lineHeight: '1.6', marginBottom: '12px' }}>
+                      Let VERA manage your schedule. Set reminders, optimize time blocks, and get intelligent calendar suggestions.
+                    </div>
+                    <button
+                      onClick={() => {
+                        setActivePanel(null);
+                        setMessage('Schedule a reminder for ');
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        background: 'linear-gradient(135deg, rgba(201, 169, 97, 0.3), rgba(201, 169, 97, 0.15))',
+                        border: '1px solid rgba(201, 169, 97, 0.4)',
+                        borderRadius: '8px',
+                        color: '#c9a961',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        marginBottom: '8px'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(201, 169, 97, 0.4), rgba(201, 169, 97, 0.2))';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(201, 169, 97, 0.3), rgba(201, 169, 97, 0.15))';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      Set Reminder with VERA
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActivePanel(null);
+                        setMessage('Optimize my calendar for tomorrow - I need focus time for ');
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        background: 'rgba(201, 169, 97, 0.15)',
+                        border: '1px solid rgba(201, 169, 97, 0.3)',
+                        borderRadius: '8px',
+                        color: '#c9a961',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.background = 'rgba(201, 169, 97, 0.25)';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'rgba(201, 169, 97, 0.15)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      Optimize My Schedule
+                    </button>
+                  </div>
+
+                  {/* Today's Events */}
+                  <div style={{ fontSize: '12px', color: '#999', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Today's Schedule
+                  </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {[
-                      { title: 'Board Meeting', time: '14:00 - 15:30', attendees: 8 },
-                      { title: 'Design Review', time: '16:00 - 16:45', attendees: 3 },
-                      { title: 'Investor Call', time: '17:00 - 17:30', attendees: 2 },
+                      { title: 'Board Meeting', time: '14:00 - 15:30', attendees: 8, priority: 'high' },
+                      { title: 'Design Review', time: '16:00 - 16:45', attendees: 3, priority: 'medium' },
+                      { title: 'Investor Call', time: '17:00 - 17:30', attendees: 2, priority: 'high' },
                     ].map((event, i) => (
                       <div key={i} style={{
                         padding: '16px',
-                        background: 'rgba(201, 169, 97, 0.1)',
-                        border: '1px solid rgba(201, 169, 97, 0.2)',
-                        borderRadius: '12px'
+                        background: 'rgba(201, 169, 97, 0.08)',
+                        border: `1px solid ${event.priority === 'high' ? 'rgba(201, 169, 97, 0.4)' : 'rgba(201, 169, 97, 0.2)'}`,
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s',
+                        position: 'relative'
+                      }}
+                      onClick={() => {
+                        setActivePanel(null);
+                        setMessage(`Tell me more about my ${event.title} and help me prepare`);
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.background = 'rgba(201, 169, 97, 0.15)';
+                        e.currentTarget.style.transform = 'translateX(4px)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'rgba(201, 169, 97, 0.08)';
+                        e.currentTarget.style.transform = 'translateX(0)';
                       }}>
+                        {event.priority === 'high' && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '12px',
+                            right: '12px',
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            background: '#c9a961',
+                            boxShadow: '0 0 10px rgba(201, 169, 97, 0.6)',
+                            animation: 'breathe 2s ease-in-out infinite'
+                          }}></div>
+                        )}
                         <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '4px' }}>{event.title}</div>
                         <div style={{ fontSize: '13px', color: '#c9a961' }}>{event.time}</div>
                         <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
@@ -866,68 +1049,472 @@ export default function VeraExecutive() {
               {activePanel === 'design' && (
                 <div style={{ color: '#fff' }}>
                   <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#ff69b4' }}>
-                    Design System
+                    Design Concepts
                   </h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-                    {['#7c3aed', '#c9a961', '#ff69b4', '#00ced1', '#ff4500', '#a78bfa'].map((color, i) => (
+                  
+                  {/* Active Concepts */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+                    {[
+                      { 
+                        title: 'Q4 Brand Refresh', 
+                        status: 'In Review',
+                        preview: 'Modernized visual identity with neural network motifs',
+                        team: 'Taylor Chen',
+                        lastUpdate: '2 hours ago',
+                        color: '#ff69b4'
+                      },
+                      { 
+                        title: 'Product Dashboard V2', 
+                        status: 'Discussion',
+                        preview: 'Minimalist interface with real-time data visualization',
+                        team: 'Design Team',
+                        lastUpdate: '1 day ago',
+                        color: '#a78bfa'
+                      },
+                    ].map((concept, i) => (
                       <div key={i} style={{
-                        height: '80px',
-                        background: `linear-gradient(135deg, ${color}, ${color}dd)`,
+                        padding: '16px',
+                        background: 'rgba(255, 105, 180, 0.08)',
+                        border: '1px solid rgba(255, 105, 180, 0.2)',
                         borderRadius: '12px',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        color: '#fff',
-                        textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                        cursor: 'pointer',
+                        transition: 'all 0.3s',
+                        position: 'relative'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 105, 180, 0.15)';
+                        e.currentTarget.style.transform = 'translateX(4px)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 105, 180, 0.08)';
+                        e.currentTarget.style.transform = 'translateX(0)';
                       }}>
-                        {color}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '4px' }}>{concept.title}</div>
+                            <div style={{ fontSize: '12px', color: '#ccc', lineHeight: '1.5', marginBottom: '8px' }}>
+                              {concept.preview}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#999' }}>
+                              {concept.team} • {concept.lastUpdate}
+                            </div>
+                          </div>
+                          <div style={{
+                            padding: '4px 10px',
+                            background: 'rgba(255, 105, 180, 0.2)',
+                            border: '1px solid rgba(255, 105, 180, 0.3)',
+                            borderRadius: '12px',
+                            fontSize: '11px',
+                            color: '#ff69b4',
+                            fontWeight: '600',
+                            whiteSpace: 'nowrap',
+                            marginLeft: '12px'
+                          }}>
+                            {concept.status}
+                          </div>
+                        </div>
                       </div>
                     ))}
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div style={{ 
+                    padding: '16px',
+                    background: 'rgba(124, 58, 237, 0.08)',
+                    border: '1px solid rgba(124, 58, 237, 0.2)',
+                    borderRadius: '12px',
+                    marginBottom: '16px'
+                  }}>
+                    <div style={{ fontSize: '12px', color: '#999', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Discuss with VERA
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#ccc', lineHeight: '1.6', marginBottom: '12px' }}>
+                      Start a design conversation. VERA can help you brainstorm concepts, refine ideas, and prepare briefs for your team.
+                    </div>
+                    <button
+                      onClick={() => {
+                        setActivePanel(null);
+                        setMessage('Help me brainstorm a new design concept for ');
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.3), rgba(167, 139, 250, 0.2))',
+                        border: '1px solid rgba(124, 58, 237, 0.4)',
+                        borderRadius: '8px',
+                        color: '#a78bfa',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(124, 58, 237, 0.4), rgba(167, 139, 250, 0.3))';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(124, 58, 237, 0.3), rgba(167, 139, 250, 0.2))';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      Start Design Discussion
+                    </button>
+                  </div>
+
+                  {/* Send to Team */}
+                  <div style={{ 
+                    padding: '16px',
+                    background: 'rgba(255, 105, 180, 0.08)',
+                    border: '1px solid rgba(255, 105, 180, 0.2)',
+                    borderRadius: '12px'
+                  }}>
+                    <div style={{ fontSize: '12px', color: '#999', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Team Collaboration
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#ccc', marginBottom: '12px' }}>
+                      Ready to share your concept? Send finalized ideas to Taylor and the design team for production.
+                    </div>
+                    <button
+                      onClick={() => {
+                        alert('Design brief sent to Taylor Chen for processing ✓');
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        background: 'rgba(255, 105, 180, 0.2)',
+                        border: '1px solid rgba(255, 105, 180, 0.3)',
+                        borderRadius: '8px',
+                        color: '#ff69b4',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 105, 180, 0.3)';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 105, 180, 0.2)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      Send to Taylor Chen →
+                    </button>
                   </div>
                 </div>
               )}
 
               {activePanel === 'biometrics' && (
                 <div style={{ color: '#fff' }}>
-                  <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#00ced1' }}>
-                    Wellness Metrics
+                  <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '20px', color: '#00ced1' }}>
+                    Wellness & Nervous System
                   </h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  
+                  {/* Nutrition Tracking with VERA */}
+                  <div style={{ 
+                    padding: '16px',
+                    background: 'rgba(0, 206, 209, 0.08)',
+                    border: '1px solid rgba(0, 206, 209, 0.2)',
+                    borderRadius: '12px',
+                    marginBottom: '20px'
+                  }}>
+                    <div style={{ fontSize: '12px', color: '#999', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Nutrition Intelligence
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#ccc', lineHeight: '1.6', marginBottom: '12px' }}>
+                      Track what you eat and let VERA optimize your nervous system health. Get personalized insights and celebrate small wins.
+                    </div>
+                    <button
+                      onClick={() => {
+                        setActivePanel(null);
+                        setMessage('I just ate ');
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        background: 'linear-gradient(135deg, rgba(0, 206, 209, 0.3), rgba(0, 206, 209, 0.15))',
+                        border: '1px solid rgba(0, 206, 209, 0.4)',
+                        borderRadius: '8px',
+                        color: '#00ced1',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        marginBottom: '8px'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0, 206, 209, 0.4), rgba(0, 206, 209, 0.2))';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0, 206, 209, 0.3), rgba(0, 206, 209, 0.15))';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      Log Meal & Get Insights
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActivePanel(null);
+                        setMessage('Show me my nutrition wins this week and how my nervous system is doing');
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        background: 'rgba(0, 206, 209, 0.15)',
+                        border: '1px solid rgba(0, 206, 209, 0.3)',
+                        borderRadius: '8px',
+                        color: '#00ced1',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.background = 'rgba(0, 206, 209, 0.25)';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'rgba(0, 206, 209, 0.15)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      View Wins & Progress
+                    </button>
+                  </div>
+
+                  {/* Today's Wellness Metrics */}
+                  <div style={{ fontSize: '12px', color: '#999', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Current Metrics
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
                     {[
-                      { label: 'Heart Rate', value: '72 BPM', status: 'optimal' },
-                      { label: 'Stress Level', value: 'Low', status: 'good' },
-                      { label: 'Focus Score', value: '85%', status: 'high' },
-                      { label: 'Energy', value: 'Moderate', status: 'moderate' },
+                      { label: 'Heart Rate', value: '72 BPM', status: 'optimal', icon: '💚' },
+                      { label: 'Stress Level', value: 'Low', status: 'good', icon: '🧘‍♀️' },
+                      { label: 'Focus Score', value: '85%', status: 'high', icon: '🎯' },
+                      { label: 'Energy', value: 'Moderate', status: 'moderate', icon: '⚡' },
                     ].map((metric, i) => (
                       <div key={i} style={{
-                        padding: '16px',
-                        background: 'rgba(0, 206, 209, 0.1)',
+                        padding: '14px 16px',
+                        background: 'rgba(0, 206, 209, 0.08)',
                         border: '1px solid rgba(0, 206, 209, 0.2)',
-                        borderRadius: '12px'
+                        borderRadius: '12px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
                       }}>
-                        <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>{metric.label}</div>
-                        <div style={{ fontSize: '18px', fontWeight: '600', color: '#00ced1' }}>{metric.value}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '20px' }}>{metric.icon}</span>
+                          <div>
+                            <div style={{ fontSize: '12px', color: '#999', marginBottom: '2px' }}>{metric.label}</div>
+                            <div style={{ fontSize: '16px', fontWeight: '600', color: '#00ced1' }}>{metric.value}</div>
+                          </div>
+                        </div>
                       </div>
                     ))}
+                  </div>
+
+                  {/* Small Wins */}
+                  <div style={{ 
+                    padding: '16px',
+                    background: 'rgba(0, 206, 209, 0.08)',
+                    border: '1px solid rgba(0, 206, 209, 0.2)',
+                    borderRadius: '12px'
+                  }}>
+                    <div style={{ fontSize: '12px', color: '#999', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Today's Wins 🎉
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#ccc', lineHeight: '1.6' }}>
+                      <div style={{ marginBottom: '8px' }}>✓ Morning meditation completed</div>
+                      <div style={{ marginBottom: '8px' }}>✓ Healthy breakfast logged</div>
+                      <div style={{ marginBottom: '8px' }}>✓ 30min focus block achieved</div>
+                      <div style={{ fontSize: '12px', color: '#00ced1', marginTop: '12px', fontWeight: '600' }}>
+                        Keep building momentum! 💪
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
 
               {activePanel === 'decision' && (
                 <div style={{ color: '#fff' }}>
-                  <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#ff4500' }}>
-                    Strategic Decisions
+                  <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '20px', color: '#ff4500' }}>
+                    Strategic Decisions & Negotiation
                   </h3>
-                  <div style={{ fontSize: '14px', lineHeight: '1.7', color: '#ccc' }}>
-                    <p>Decision matrix and strategic analysis tools coming soon...</p>
-                    <div style={{ marginTop: '16px', padding: '16px', background: 'rgba(255, 69, 0, 0.1)', border: '1px solid rgba(255, 69, 0, 0.2)', borderRadius: '12px' }}>
-                      <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Active Decisions</div>
-                      <div style={{ fontSize: '12px', color: '#999' }}>• Q4 Budget Allocation</div>
-                      <div style={{ fontSize: '12px', color: '#999' }}>• New Hire Approvals</div>
-                      <div style={{ fontSize: '12px', color: '#999' }}>• Product Roadmap</div>
+                  
+                  {/* VERA Decision Intelligence */}
+                  <div style={{ 
+                    padding: '16px',
+                    background: 'rgba(255, 69, 0, 0.08)',
+                    border: '1px solid rgba(255, 69, 0, 0.2)',
+                    borderRadius: '12px',
+                    marginBottom: '20px'
+                  }}>
+                    <div style={{ fontSize: '12px', color: '#999', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      VERA Decision Support
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#ccc', lineHeight: '1.6', marginBottom: '12px' }}>
+                      Navigate complex negotiations and strategic decisions with VERA. Get perspective, challenge assumptions, and think through scenarios.
+                    </div>
+                    <button
+                      onClick={() => {
+                        setActivePanel(null);
+                        setMessage('Help me think through this negotiation: ');
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        background: 'linear-gradient(135deg, rgba(255, 69, 0, 0.3), rgba(255, 69, 0, 0.15))',
+                        border: '1px solid rgba(255, 69, 0, 0.4)',
+                        borderRadius: '8px',
+                        color: '#ff6347',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        marginBottom: '8px'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255, 69, 0, 0.4), rgba(255, 69, 0, 0.2))';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255, 69, 0, 0.3), rgba(255, 69, 0, 0.15))';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      Negotiate with VERA
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActivePanel(null);
+                        setMessage('I need to make a decision about ');
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        background: 'rgba(255, 69, 0, 0.15)',
+                        border: '1px solid rgba(255, 69, 0, 0.3)',
+                        borderRadius: '8px',
+                        color: '#ff6347',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 69, 0, 0.25)';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 69, 0, 0.15)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      Strategic Decision Session
+                    </button>
+                  </div>
+
+                  {/* Active Decisions */}
+                  <div style={{ fontSize: '12px', color: '#999', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Pending Decisions
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+                    {[
+                      { 
+                        title: 'Q4 Budget Allocation', 
+                        urgency: 'High',
+                        context: 'Need to decide between growth vs. profitability focus',
+                        deadline: 'This week'
+                      },
+                      { 
+                        title: 'Strategic Partnership Negotiation', 
+                        urgency: 'Medium',
+                        context: 'Terms discussion with potential investor group',
+                        deadline: 'Next week'
+                      },
+                      { 
+                        title: 'Product Roadmap Pivot', 
+                        urgency: 'Medium',
+                        context: 'User feedback suggests major feature priority shift',
+                        deadline: '2 weeks'
+                      },
+                    ].map((decision, i) => (
+                      <div key={i} style={{
+                        padding: '16px',
+                        background: 'rgba(255, 69, 0, 0.08)',
+                        border: `1px solid ${decision.urgency === 'High' ? 'rgba(255, 69, 0, 0.4)' : 'rgba(255, 69, 0, 0.2)'}`,
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s',
+                        position: 'relative'
+                      }}
+                      onClick={() => {
+                        setActivePanel(null);
+                        setMessage(`Let's discuss my decision about ${decision.title}. ${decision.context}`);
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 69, 0, 0.15)';
+                        e.currentTarget.style.transform = 'translateX(4px)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 69, 0, 0.08)';
+                        e.currentTarget.style.transform = 'translateX(0)';
+                      }}>
+                        {decision.urgency === 'High' && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '12px',
+                            right: '12px',
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            background: '#ff4500',
+                            boxShadow: '0 0 10px rgba(255, 69, 0, 0.6)',
+                            animation: 'breathe 2s ease-in-out infinite'
+                          }}></div>
+                        )}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>{decision.title}</div>
+                            <div style={{ fontSize: '12px', color: '#ccc', lineHeight: '1.5', marginBottom: '8px' }}>
+                              {decision.context}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#999' }}>
+                              Deadline: {decision.deadline}
+                            </div>
+                          </div>
+                          <div style={{
+                            padding: '4px 10px',
+                            background: decision.urgency === 'High' ? 'rgba(255, 69, 0, 0.2)' : 'rgba(255, 69, 0, 0.1)',
+                            border: `1px solid ${decision.urgency === 'High' ? 'rgba(255, 69, 0, 0.4)' : 'rgba(255, 69, 0, 0.2)'}`,
+                            borderRadius: '12px',
+                            fontSize: '11px',
+                            color: '#ff6347',
+                            fontWeight: '600',
+                            whiteSpace: 'nowrap',
+                            marginLeft: '12px'
+                          }}>
+                            {decision.urgency}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Negotiation Scenarios */}
+                  <div style={{ 
+                    padding: '16px',
+                    background: 'rgba(255, 69, 0, 0.08)',
+                    border: '1px solid rgba(255, 69, 0, 0.2)',
+                    borderRadius: '12px'
+                  }}>
+                    <div style={{ fontSize: '12px', color: '#999', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Practice & Prepare
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#ccc', lineHeight: '1.6' }}>
+                      Use VERA to role-play tough conversations, practice negotiation tactics, and refine your strategic thinking before high-stakes meetings.
                     </div>
                   </div>
                 </div>
@@ -936,28 +1523,84 @@ export default function VeraExecutive() {
               {activePanel === 'settings' && (
                 <div style={{ color: '#fff' }}>
                   <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#888' }}>
-                    System Settings
+                    System Information
                   </h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {[
-                      { label: 'AI Model', value: 'Claude 3 Sonnet' },
-                      { label: 'Voice', value: 'ElevenLabs Premium' },
-                      { label: 'Theme', value: 'Neural Dark' },
-                      { label: 'Notifications', value: 'Executive Mode' },
-                    ].map((setting, i) => (
-                      <div key={i} style={{
-                        padding: '16px',
-                        background: 'rgba(136, 136, 136, 0.1)',
-                        border: '1px solid rgba(136, 136, 136, 0.2)',
-                        borderRadius: '12px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}>
-                        <span style={{ fontSize: '14px' }}>{setting.label}</span>
-                        <span style={{ fontSize: '13px', color: '#999' }}>{setting.value}</span>
+                    {/* Session Info */}
+                    <div style={{
+                      padding: '16px',
+                      background: 'rgba(136, 136, 136, 0.1)',
+                      border: '1px solid rgba(136, 136, 136, 0.2)',
+                      borderRadius: '12px'
+                    }}>
+                      <div style={{ fontSize: '12px', color: '#999', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Current Session</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '13px' }}>Messages</span>
+                        <span style={{ fontSize: '13px', color: '#a78bfa', fontWeight: '600' }}>{messages.length}</span>
                       </div>
-                    ))}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '13px' }}>Saved Chats</span>
+                        <span style={{ fontSize: '13px', color: '#a78bfa', fontWeight: '600' }}>{chatHistory.length}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '13px' }}>Chat ID</span>
+                        <span style={{ fontSize: '11px', color: '#666', fontFamily: 'monospace' }}>{currentChatId.substring(5, 18)}...</span>
+                      </div>
+                    </div>
+
+                    {/* System Status */}
+                    <div style={{
+                      padding: '16px',
+                      background: 'rgba(0, 206, 209, 0.1)',
+                      border: '1px solid rgba(0, 206, 209, 0.2)',
+                      borderRadius: '12px'
+                    }}>
+                      <div style={{ fontSize: '12px', color: '#999', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>System Status</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '13px' }}>VERA Neural</span>
+                        <span style={{ fontSize: '13px', color: '#00ced1', fontWeight: '600' }}>● Operational</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '13px' }}>API Status</span>
+                        <span style={{ fontSize: '13px', color: '#00ced1', fontWeight: '600' }}>● Connected</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '13px' }}>Version</span>
+                        <span style={{ fontSize: '13px', color: '#00ced1', fontWeight: '600' }}>v2.0.1</span>
+                      </div>
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div style={{
+                      padding: '16px',
+                      background: 'rgba(255, 69, 0, 0.1)',
+                      border: '1px solid rgba(255, 69, 0, 0.2)',
+                      borderRadius: '12px'
+                    }}>
+                      <div style={{ fontSize: '12px', color: '#999', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Quick Actions</div>
+                      <button
+                        onClick={() => {
+                          localStorage.removeItem('vera-chat-history');
+                          setChatHistory([]);
+                          alert('Chat history cleared');
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '10px',
+                          background: 'rgba(255, 69, 0, 0.2)',
+                          border: '1px solid rgba(255, 69, 0, 0.3)',
+                          borderRadius: '8px',
+                          color: '#ff6347',
+                          fontSize: '13px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 69, 0, 0.3)'}
+                        onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 69, 0, 0.2)'}
+                      >
+                        Clear Chat History
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -966,8 +1609,8 @@ export default function VeraExecutive() {
         )}
       {/* Header */}
       <header style={{
-        borderBottom: '1px solid #333',
-        background: 'rgba(0,0,0,0.5)',
+        borderBottom: '1px solid rgba(80, 80, 90, 0.3)',
+        background: 'rgba(30, 30, 35, 0.8)',
         backdropFilter: 'blur(10px)',
         padding: '16px 24px',
         flexShrink: 0
@@ -1185,30 +1828,42 @@ export default function VeraExecutive() {
                       borderRadius: '20px',
                       padding: '16px 24px',
                       background: msg.role === 'user'
-                        ? 'linear-gradient(135deg, rgba(201, 169, 97, 0.25) 0%, rgba(184, 149, 80, 0.2) 50%, rgba(167, 133, 64, 0.18) 100%)'
+                        ? 'linear-gradient(135deg, rgba(218, 165, 32, 0.3) 0%, rgba(184, 149, 80, 0.25) 50%, rgba(167, 133, 64, 0.2) 100%)'
                         : 'linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(91, 33, 182, 0.1) 100%)',
-                      color: msg.role === 'user' ? '#e8d4a0' : '#fff',
+                      color: msg.role === 'user' ? '#f4d58d' : '#fff',
                       border: msg.role === 'user' 
-                        ? '1px solid rgba(201, 169, 97, 0.25)'
+                        ? '1px solid rgba(218, 165, 32, 0.4)'
                         : '1px solid rgba(124, 58, 237, 0.3)',
                       boxShadow: msg.role === 'user'
-                        ? '0 4px 24px rgba(201, 169, 97, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08)'
+                        ? '0 4px 24px rgba(218, 165, 32, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
                         : '0 8px 32px rgba(124, 58, 237, 0.2)',
                       position: 'relative',
                       backdropFilter: 'blur(10px)'
                     }}>
-                      {/* Luxury shine effect */}
+                      {/* Luxury gold shine effect */}
                       {msg.role === 'user' && (
-                        <div style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          height: '50%',
-                          background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 100%)',
-                          borderRadius: '20px 20px 0 0',
-                          pointerEvents: 'none'
-                        }}></div>
+                        <>
+                          <div style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: '50%',
+                            background: 'linear-gradient(180deg, rgba(255, 223, 128, 0.12) 0%, transparent 100%)',
+                            borderRadius: '20px 20px 0 0',
+                            pointerEvents: 'none'
+                          }}></div>
+                          <div style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            bottom: 0,
+                            right: 0,
+                            background: 'radial-gradient(circle at 20% 80%, rgba(255, 215, 0, 0.08) 0%, transparent 50%)',
+                            borderRadius: '20px',
+                            pointerEvents: 'none'
+                          }}></div>
+                        </>
                       )}
                       
                       <div style={{ display: 'flex', alignItems: 'start', gap: '12px' }}>
@@ -1244,7 +1899,10 @@ export default function VeraExecutive() {
                               fontSize: '11px', 
                               fontWeight: '600', 
                               marginBottom: '6px',
-                              color: 'rgba(201, 169, 97, 0.7)',
+                              background: 'linear-gradient(90deg, #daa520, #f4d58d, #daa520)',
+                              WebkitBackgroundClip: 'text',
+                              WebkitTextFillColor: 'transparent',
+                              backgroundClip: 'text',
                               letterSpacing: '0.5px',
                               textTransform: 'uppercase'
                             }}>
@@ -1329,8 +1987,8 @@ export default function VeraExecutive() {
 
         {/* Input Area */}
         <div style={{
-          borderTop: '1px solid rgba(124, 58, 237, 0.3)',
-          background: 'linear-gradient(180deg, rgba(20, 10, 30, 0.5) 0%, rgba(10, 5, 20, 0.8) 100%)',
+          borderTop: '1px solid rgba(80, 80, 90, 0.3)',
+          background: 'linear-gradient(180deg, rgba(30, 30, 35, 0.8) 0%, rgba(25, 25, 30, 0.95) 100%)',
           backdropFilter: 'blur(20px)',
           padding: '20px 24px',
           flexShrink: 0,
@@ -1374,9 +2032,9 @@ export default function VeraExecutive() {
                   rows={1}
                   style={{
                     width: '100%',
-                    background: 'linear-gradient(135deg, rgba(40, 40, 60, 0.6) 0%, rgba(30, 30, 50, 0.8) 100%)',
+                    background: 'linear-gradient(135deg, rgba(50, 50, 55, 0.6) 0%, rgba(40, 40, 45, 0.8) 100%)',
                     color: '#fff',
-                    border: '1px solid rgba(124, 58, 237, 0.3)',
+                    border: '1px solid rgba(100, 100, 110, 0.3)',
                     borderRadius: '16px',
                     padding: '14px 20px',
                     fontSize: '15px',
@@ -1385,16 +2043,16 @@ export default function VeraExecutive() {
                     maxHeight: '120px',
                     outline: 'none',
                     fontFamily: 'inherit',
-                    boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 20px rgba(124, 58, 237, 0.1)',
+                    boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 10px rgba(124, 58, 237, 0.1)',
                     transition: 'all 0.3s ease'
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.6)';
-                    e.currentTarget.style.boxShadow = 'inset 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 30px rgba(124, 58, 237, 0.3)';
+                    e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.5)';
+                    e.currentTarget.style.boxShadow = 'inset 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 20px rgba(124, 58, 237, 0.2)';
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.3)';
-                    e.currentTarget.style.boxShadow = 'inset 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 20px rgba(124, 58, 237, 0.1)';
+                    e.currentTarget.style.borderColor = 'rgba(100, 100, 110, 0.3)';
+                    e.currentTarget.style.boxShadow = 'inset 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 10px rgba(124, 58, 237, 0.1)';
                   }}
                 />
               </div>

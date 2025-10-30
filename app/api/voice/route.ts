@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           text: cleanedText,
-          model_id: 'eleven_monolingual_v1',
+          model_id: 'eleven_turbo_v2_5', // Upgraded from eleven_monolingual_v1 - faster, more natural
           voice_settings: {
             stability: voiceSettings.stability,
             similarity_boost: voiceSettings.similarity,

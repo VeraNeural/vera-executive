@@ -31,8 +31,22 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
+    // Clean text for speech (remove markdown formatting)
+    const cleanText = text
+      .replace(/\*\*/g, '') // Remove bold **text**
+      .replace(/\*/g, '')   // Remove italic *text*
+      .replace(/_{2,}/g, '') // Remove __underline__
+      .replace(/_/g, '')     // Remove _italic_
+      .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Remove links [text](url)
+      .replace(/`{1,3}[^`]*`{1,3}/g, '') // Remove code `code`
+      .replace(/#{1,6}\s/g, '') // Remove headers #
+      .replace(/[-*+]\s/g, '') // Remove bullet points
+      .replace(/\n{3,}/g, '\n\n') // Normalize line breaks
+      .trim();
+
+    console.log('🎙️ Calling ElevenLabs API...', { originalLength: text.length, cleanedLength: cleanText.length });
+    
     // Call ElevenLabs API
-    console.log('🎙️ Calling ElevenLabs API...');
     const elevenlabsResponse = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
       {
@@ -43,7 +57,7 @@ export async function POST(request: NextRequest) {
           'xi-api-key': apiKey
         },
         body: JSON.stringify({
-          text: text.substring(0, 5000), // Limit to 5000 chars
+          text: cleanText.substring(0, 5000), // Limit to 5000 chars
           model_id: 'eleven_monolingual_v1',
           voice_settings: {
             stability: 0.5,
