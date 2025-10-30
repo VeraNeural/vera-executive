@@ -1,72 +1,444 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Mic, 
+  Calendar, 
+  Briefcase, 
+  Palette, 
+  Heart, 
+  AlertTriangle,
+  Activity,
+  Clock
+} from "lucide-react";
 
-export default function Home() {
-  const [message, setMessage] = useState("");
-  const [responses, setResponses] = useState([]);
+interface Message {
+  id: string;
+  type: 'user' | 'vera';
+  content: string;
+  timestamp: Date;
+  mode?: string;
+}
 
-  const handleSubmit = async () => {
-    if (!message.trim()) return;
-    
-    const res = await fetch("/api/vera", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message }),
-    });
-    
-    const data = await res.json();
-    setResponses([...responses, { user: message, vera: data.response }]);
-    setMessage("");
+interface MousePosition {
+  x: number;
+  y: number;
+}
+
+const EnergyIndicator = ({ level }: { level: 'high' | 'medium' | 'low' }) => {
+  const colors = {
+    high: '#10b981',
+    medium: '#f59e0b',
+    low: '#ef4444'
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0a0a0a", color: "white", padding: "40px" }}>
-      <h1 style={{ fontSize: "24px", letterSpacing: "8px", marginBottom: "40px" }}>VERA</h1>
+    <div className="flex items-center gap-2">
+      <motion.div
+        className="w-2 h-2 rounded-full"
+        style={{ backgroundColor: colors[level] }}
+        animate={{ opacity: [0.4, 1, 0.4] }}
+        transition={{ duration: 2, repeat: Infinity }}
+      />
+      <span className="text-xs text-gray-400 font-light tracking-wider uppercase">
+        {level} energy
+      </span>
+    </div>
+  );
+};
+
+const ProcessingOrb = () => (
+  <motion.div
+    className="w-4 h-4 rounded-full bg-purple-500"
+    animate={{
+      scale: [1, 1.2, 1],
+      opacity: [0.5, 1, 0.5],
+    }}
+    transition={{
+      duration: 2,
+      repeat: Infinity,
+      ease: "easeInOut"
+    }}
+  />
+);
+
+export default function Home() {
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [currentMode, setCurrentMode] = useState("Executive");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [mousePosition, setMousePosition] = useState<MousePosition>({ x: 0, y: 0 });
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [energyLevel, setEnergyLevel] = useState<'high' | 'medium' | 'low'>('high');
+  const [isMounted, setIsMounted] = useState(false);
+  
+  const recognitionRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Ensure client-side only rendering for animations
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Real-time clock
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Mouse parallax effect
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setMousePosition({
+          x: (e.clientX - rect.left - rect.width / 2) / 20,
+          y: (e.clientY - rect.top - rect.height / 2) / 20,
+        });
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  // Speech recognition setup
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
+      recognitionRef.current = new (window as any).webkitSpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = 'en-US';
+
+      recognitionRef.current.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setMessage(transcript);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onerror = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+  }, []);
+
+  const modes = [
+    { name: "Executive", icon: Briefcase, color: "from-blue-500 to-blue-600" },
+    { name: "Creative", icon: Palette, color: "from-purple-500 to-purple-600" },
+    { name: "Personal", icon: Heart, color: "from-pink-500 to-pink-600" },
+    { name: "Crisis", icon: AlertTriangle, color: "from-red-500 to-red-600" },
+  ];
+
+  const handleSubmit = async () => {
+    if (!message.trim() || isProcessing) return;
+    
+    setIsProcessing(true);
+    const userMessage: Message = {
+      id: Math.random().toString(36).substr(2, 9),
+      type: 'user',
+      content: message,
+      timestamp: new Date(),
+      mode: currentMode
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    
+    try {
+      const res = await fetch("/api/vera", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          message, 
+          mode: currentMode,
+          context: { energyLevel, timestamp: new Date().toISOString() }
+        }),
+      });
       
-      <div style={{ maxWidth: "800px", margin: "0 auto" }}>
-        {responses.map((r, i) => (
-          <div key={i} style={{ marginBottom: "20px" }}>
-            <div style={{ background: "rgba(138, 43, 226, 0.1)", padding: "15px", borderRadius: "10px", marginBottom: "10px" }}>
-              You: {r.user}
-            </div>
-            <div style={{ background: "rgba(255, 255, 255, 0.05)", padding: "15px", borderRadius: "10px" }}>
-              VERA: {r.vera}
-            </div>
-          </div>
-        ))}
+      const data = await res.json();
+      
+      const veraMessage: Message = {
+        id: Math.random().toString(36).substr(2, 9),
+        type: 'vera',
+        content: data.response,
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, veraMessage]);
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setIsProcessing(false);
+      setMessage("");
+    }
+  };
+
+  const startListening = () => {
+    if (recognitionRef.current && !isListening) {
+      setIsListening(true);
+      recognitionRef.current.start();
+    }
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', { 
+      hour12: false, 
+      hour: '2-digit', 
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
+
+  const formatMessageTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  return (
+    <div 
+      ref={containerRef}
+      className="min-h-screen bg-black text-white overflow-hidden relative"
+      style={{
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+        background: `radial-gradient(circle at ${50 + mousePosition.x}% ${50 + mousePosition.y}%, rgba(88, 28, 135, 0.15) 0%, rgba(0, 0, 0, 1) 70%)`
+      }}
+    >
+      {/* Animated background particles */}
+      {isMounted && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(20)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-1 h-1 bg-purple-500 rounded-full opacity-20"
+              style={{
+                left: `${(i * 37 + 23) % 100}%`,
+                top: `${(i * 47 + 17) % 100}%`,
+              }}
+              animate={{
+                y: [0, -30, 0],
+                opacity: [0.2, 0.8, 0.2],
+              }}
+              transition={{
+                duration: 3 + (i % 3),
+                repeat: Infinity,
+                delay: i * 0.2,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Header */}
+      <motion.header 
+        className="flex justify-between items-center p-8 border-b border-gray-800/50 backdrop-blur-sm"
+        style={{
+          transform: `translate3d(${mousePosition.x}px, ${mousePosition.y}px, 0)`,
+        }}
+      >
+        <motion.h1 
+          className="text-2xl font-extralight tracking-[8px] text-white"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 0.2 }}
+        >
+          VERA
+        </motion.h1>
         
-        <div style={{ display: "flex", gap: "10px", marginTop: "40px" }}>
-          <input
-            type="text"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-            placeholder="Message VERA..."
-            style={{
-              flex: 1,
-              padding: "15px",
-              background: "rgba(255, 255, 255, 0.05)",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-              borderRadius: "10px",
-              color: "white",
-              fontSize: "16px",
-            }}
-          />
-          <button
+        <div className="flex items-center gap-8">
+          <EnergyIndicator level={energyLevel} />
+          
+          <div className="flex items-center gap-2 text-gray-300">
+            <Clock className="w-4 h-4" />
+            <span className="font-mono text-sm tracking-wider">
+              {formatTime(currentTime)}
+            </span>
+          </div>
+        </div>
+      </motion.header>
+
+      <div className="flex flex-col h-[calc(100vh-120px)] max-w-6xl mx-auto p-8">
+        {/* Mode Selection */}
+        <motion.div 
+          className="flex gap-4 mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+        >
+          {modes.map((mode) => {
+            const IconComponent = mode.icon;
+            return (
+              <motion.button
+                key={mode.name}
+                onClick={() => setCurrentMode(mode.name)}
+                className={`flex items-center gap-3 px-6 py-3 rounded-xl backdrop-blur-md border transition-all duration-300 ${
+                  currentMode === mode.name
+                    ? 'bg-white/10 border-white/20 text-white'
+                    : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/8 hover:text-white'
+                }`}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <IconComponent className="w-4 h-4" />
+                <span className="font-light tracking-wide">{mode.name}</span>
+              </motion.button>
+            );
+          })}
+        </motion.div>
+
+        {/* Messages Container */}
+        <div className="flex-1 overflow-y-auto space-y-6 mb-8 pr-4 custom-scrollbar">
+          <AnimatePresence>
+            {messages.map((msg) => (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                transition={{ duration: 0.3 }}
+                className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-2xl rounded-2xl backdrop-blur-md border p-6 ${
+                    msg.type === 'user'
+                      ? 'bg-purple-500/10 border-purple-500/20 text-purple-100'
+                      : 'bg-white/5 border-white/10 text-gray-100'
+                  }`}
+                  style={{
+                    background: msg.type === 'user' 
+                      ? 'rgba(147, 51, 234, 0.1)' 
+                      : 'rgba(255, 255, 255, 0.05)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                  }}
+                >
+                  <p className="font-light leading-relaxed mb-2">{msg.content}</p>
+                  <span className="text-xs text-gray-400 font-mono">
+                    {formatMessageTime(msg.timestamp)}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+          
+          {isProcessing && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex justify-start"
+            >
+              <div className="flex items-center gap-3 px-6 py-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
+                <ProcessingOrb />
+                <span className="text-gray-400 font-light">VERA is thinking...</span>
+              </div>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Input Section */}
+        <motion.div 
+          className="flex gap-4 items-end"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+        >
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              placeholder="Message VERA..."
+              disabled={isProcessing}
+              className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 font-light backdrop-blur-md focus:outline-none focus:border-purple-500/50 focus:bg-white/8 transition-all duration-300"
+              style={{
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+              }}
+            />
+          </div>
+          
+          <motion.button
+            onClick={startListening}
+            disabled={isListening || isProcessing}
+            className={`p-4 rounded-xl backdrop-blur-md border transition-all duration-300 ${
+              isListening 
+                ? 'bg-red-500/20 border-red-500/30 text-red-400' 
+                : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
+            }`}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Mic className="w-5 h-5" />
+          </motion.button>
+          
+          <motion.button
+            onClick={() => setShowCalendar(!showCalendar)}
+            className="p-4 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 hover:text-white backdrop-blur-md transition-all duration-300"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Calendar className="w-5 h-5" />
+          </motion.button>
+          
+          <motion.button
             onClick={handleSubmit}
-            style={{
-              padding: "15px 30px",
-              background: "rgba(138, 43, 226, 0.3)",
-              border: "1px solid rgba(138, 43, 226, 0.5)",
-              borderRadius: "10px",
-              color: "white",
-              cursor: "pointer",
-            }}
+            disabled={!message.trim() || isProcessing}
+            className="px-8 py-4 bg-purple-600/20 border border-purple-500/30 text-purple-100 rounded-xl backdrop-blur-md hover:bg-purple-600/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-light"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
             Send
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
       </div>
+
+      {/* Calendar Overlay */}
+      <AnimatePresence>
+        {showCalendar && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+            onClick={() => setShowCalendar(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              className="bg-white/10 border border-white/20 rounded-2xl p-8 backdrop-blur-md max-w-md"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-light mb-4 tracking-wide">Calendar Integration</h3>
+              <p className="text-gray-400 font-light">Calendar features coming soon...</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.3);
+        }
+      `}</style>
     </div>
   );
 }
