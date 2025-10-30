@@ -9,7 +9,9 @@ import {
   Heart, 
   AlertTriangle,
   Activity,
-  Clock
+  Clock,
+  Volume2,
+  VolumeX
 } from "lucide-react";
 
 interface Message {
@@ -73,9 +75,13 @@ export default function Home() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [energyLevel, setEnergyLevel] = useState<'high' | 'medium' | 'low'>('high');
   const [isMounted, setIsMounted] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [currentVoice, setCurrentVoice] = useState("Rachel");
+  const [isSpeaking, setIsSpeaking] = useState(false);
   
   const recognitionRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Ensure client-side only rendering for animations
   useEffect(() => {
@@ -170,6 +176,11 @@ export default function Home() {
       };
 
       setMessages(prev => [...prev, veraMessage]);
+      
+      // Speak VERA's response if voice is enabled
+      if (voiceEnabled && data.response) {
+        setTimeout(() => speakText(data.response), 500); // Small delay for better UX
+      }
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -182,6 +193,49 @@ export default function Home() {
     if (recognitionRef.current && !isListening) {
       setIsListening(true);
       recognitionRef.current.start();
+    }
+  };
+
+  const speakText = async (text: string) => {
+    if (!voiceEnabled || !text.trim() || isSpeaking) return;
+    
+    setIsSpeaking(true);
+    
+    try {
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voice: currentVoice })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.audio) {
+        // Play the audio using Web Audio API
+        const audioData = Uint8Array.from(atob(data.audio), c => c.charCodeAt(0));
+        const audioBlob = new Blob([audioData], { type: 'audio/mpeg' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        
+        if (audioRef.current) {
+          audioRef.current.src = audioUrl;
+          await audioRef.current.play();
+        }
+      } else if (data.fallback) {
+        // Voice synthesis not available, show notification
+        console.log('Voice synthesis ready - add ElevenLabs API key to enable');
+      }
+    } catch (error) {
+      console.error('Voice synthesis error:', error);
+    } finally {
+      setIsSpeaking(false);
+    }
+  };
+
+  const toggleVoice = () => {
+    setVoiceEnabled(!voiceEnabled);
+    if (isSpeaking && audioRef.current) {
+      audioRef.current.pause();
+      setIsSpeaking(false);
     }
   };
 
@@ -253,6 +307,20 @@ export default function Home() {
         
         <div className="flex items-center gap-8">
           <EnergyIndicator level={energyLevel} />
+          
+          <motion.button
+            onClick={toggleVoice}
+            className={`p-2 rounded-lg backdrop-blur-md border transition-all duration-300 ${
+              voiceEnabled 
+                ? 'bg-purple-500/20 border-purple-500/30 text-purple-300' 
+                : 'bg-white/5 border-white/10 text-gray-400'
+            } ${isSpeaking ? 'animate-pulse' : ''}`}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            title={voiceEnabled ? 'Voice enabled' : 'Voice disabled'}
+          >
+            {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          </motion.button>
           
           <div className="flex items-center gap-2 text-gray-300">
             <Clock className="w-4 h-4" />
@@ -439,6 +507,14 @@ export default function Home() {
           background: rgba(255, 255, 255, 0.3);
         }
       `}</style>
+
+      {/* Hidden audio element for voice playback */}
+      <audio
+        ref={audioRef}
+        onEnded={() => setIsSpeaking(false)}
+        onError={() => setIsSpeaking(false)}
+        style={{ display: 'none' }}
+      />
     </div>
   );
 }
