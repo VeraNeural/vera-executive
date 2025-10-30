@@ -220,6 +220,8 @@ export default function VeraExecutive() {
   const speakText = async (text: string) => {
     try {
       setIsSpeaking(true);
+      console.log('🎤 Requesting voice synthesis...');
+      
       const response = await fetch('/api/tts', {
         method: 'POST',
         headers: {
@@ -232,10 +234,24 @@ export default function VeraExecutive() {
         const audioBlob = await response.blob();
         const audioUrl = URL.createObjectURL(audioBlob);
         
+        console.log('🔊 Audio blob created, size:', audioBlob.size);
+        
         if (audioRef.current) {
           audioRef.current.src = audioUrl;
-          await audioRef.current.play();
+          
+          try {
+            await audioRef.current.play();
+            console.log('✅ Audio playing successfully');
+          } catch (playError) {
+            console.error('❌ Audio play failed:', playError);
+            // Browsers may block autoplay, inform user
+            console.warn('⚠️ Browser may have blocked autoplay. User interaction required.');
+            setIsSpeaking(false);
+          }
         }
+      } else {
+        console.error('❌ TTS API failed:', response.status);
+        setIsSpeaking(false);
       }
     } catch (error) {
       console.error('Voice error:', error);
