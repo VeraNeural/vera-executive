@@ -11,8 +11,15 @@ import {
   Activity,
   Clock,
   Volume2,
-  VolumeX
+  VolumeX,
+  RotateCcw,
+  Brain
 } from "lucide-react";
+import BiometricModule from "./components/BiometricModule";
+import WellnessModule from "./components/WellnessModule";
+import LuxuryConcierge from "./components/LuxuryConcierge";
+import DeepWorkModule from "./components/DeepWorkModule";
+import StrategicDecisionModule from "./components/StrategicDecisionModule";
 
 interface Message {
   id: string;
@@ -20,6 +27,53 @@ interface Message {
   content: string;
   timestamp: Date;
   mode?: string;
+}
+
+interface BiometricData {
+  energyLevel: number;
+  stressLevel: number;
+  heartRate?: number;
+  hrv?: number;
+  timestamp: Date;
+  mood: 'excellent' | 'good' | 'neutral' | 'low' | 'stressed';
+}
+
+interface WellnessData {
+  moodScore: number;
+  stressLevel: number;
+  energyLevel: number;
+  typingPattern: {
+    speed: number;
+    pauses: number;
+    errors: number;
+  };
+  recommendations: string[];
+  alerts: string[];
+}
+
+interface ConciergeService {
+  id: string;
+  title: string;
+  description: string;
+  category: 'dining' | 'travel' | 'wellness' | 'culture' | 'shopping' | 'business';
+  priority: 'high' | 'medium' | 'low';
+  status: 'available' | 'booking' | 'confirmed' | 'completed';
+  estimatedTime?: string;
+  icon: React.ComponentType<{ className?: string }>;
+  action: () => void;
+}
+
+interface DeepWorkData {
+  totalFocusTime: number;
+  sessionsToday: number;
+  peakPerformanceHours: string[];
+  distractionLog: string[];
+  flowStateAchieved: boolean;
+  ambientSettings: {
+    soundscape: string;
+    lighting: string;
+    temperature: string;
+  };
 }
 
 interface MousePosition {
@@ -101,6 +155,49 @@ export default function Home() {
   const [teamMentioned, setTeamMentioned] = useState<string | null>(null);
   const [dailyGreeting, setDailyGreeting] = useState("");
   const [celebrationMoment, setCelebrationMoment] = useState<string | null>(null);
+  const [conversationMemory, setConversationMemory] = useState<any>(null);
+  const [totalInteractions, setTotalInteractions] = useState(0);
+  const [memoryLoaded, setMemoryLoaded] = useState(false);
+  
+  // Biometric system state
+  const [currentBiometrics, setCurrentBiometrics] = useState<BiometricData>({
+    energyLevel: 75,
+    stressLevel: 25,
+    timestamp: new Date(),
+    mood: 'good'
+  });
+  const [showBiometrics, setShowBiometrics] = useState(false);
+  
+  // Wellness system state  
+  const [currentWellness, setCurrentWellness] = useState<WellnessData>({
+    moodScore: 75,
+    stressLevel: 25,
+    energyLevel: 80,
+    typingPattern: { speed: 0, pauses: 0, errors: 0 },
+    recommendations: [],
+    alerts: []
+  });
+  const [showWellness, setShowWellness] = useState(false);
+  
+  // Concierge system state
+  const [activeServices, setActiveServices] = useState<ConciergeService[]>([]);
+  const [showConcierge, setShowConcierge] = useState(false);
+  
+  // Deep work system state
+  const [deepWorkData, setDeepWorkData] = useState<DeepWorkData>({
+    totalFocusTime: 0,
+    sessionsToday: 0,
+    peakPerformanceHours: [],
+    distractionLog: [],
+    flowStateAchieved: false,
+    ambientSettings: {
+      soundscape: 'nature',
+      lighting: 'warm',
+      temperature: 'optimal'
+    }
+  });
+  const [showDeepWork, setShowDeepWork] = useState(false);
+  const [showStrategicDecision, setShowStrategicDecision] = useState(false);
   
   const recognitionRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -109,8 +206,247 @@ export default function Home() {
   // Ensure client-side only rendering for animations
   useEffect(() => {
     setIsMounted(true);
+    loadConversationMemory();
     generateDailyGreeting();
   }, []);
+
+  // Load conversation memory from localStorage
+  const loadConversationMemory = () => {
+    try {
+      const saved = localStorage.getItem('vera-julija-memory');
+      if (saved) {
+        const memory = JSON.parse(saved);
+        setConversationMemory(memory);
+        setTotalInteractions(memory.totalInteractions || 0);
+        setMessages(memory.recentMessages || []);
+      }
+      setMemoryLoaded(true);
+    } catch (error) {
+      console.error('Error loading memory:', error);
+      setMemoryLoaded(true);
+    }
+  };
+
+  // Save conversation memory to localStorage
+  const saveConversationMemory = (newMessages: Message[], userMessage: string, veraResponse: string) => {
+    try {
+      const currentMemory = conversationMemory || {
+        totalInteractions: 0,
+        patterns: {
+          preferredTimes: {},
+          frequentTopics: {},
+          energyPatterns: {},
+          decisionStyle: [],
+          workPreferences: []
+        },
+        recentMemories: [],
+        lastInteraction: null
+      };
+
+      // Update interaction count
+      const newInteractionCount = currentMemory.totalInteractions + 1;
+
+      // Track patterns
+      const currentHour = new Date().getHours();
+      const timeSlot = currentHour < 12 ? 'morning' : currentHour < 17 ? 'afternoon' : 'evening';
+      
+      // Update patterns
+      currentMemory.patterns.preferredTimes[timeSlot] = (currentMemory.patterns.preferredTimes[timeSlot] || 0) + 1;
+      currentMemory.patterns.energyPatterns[`${timeSlot}_${energyLevel}`] = 
+        (currentMemory.patterns.energyPatterns[`${timeSlot}_${energyLevel}`] || 0) + 1;
+
+      // Extract topics from user message
+      const topics = extractTopics(userMessage);
+      topics.forEach(topic => {
+        currentMemory.patterns.frequentTopics[topic] = (currentMemory.patterns.frequentTopics[topic] || 0) + 1;
+      });
+
+      // Store recent memories (last 10 interactions)
+      const newMemory = {
+        timestamp: new Date().toISOString(),
+        userMessage,
+        veraResponse,
+        mode: currentMode,
+        energyLevel,
+        timeSlot
+      };
+
+      currentMemory.recentMemories = [newMemory, ...(currentMemory.recentMemories || [])].slice(0, 10);
+      currentMemory.totalInteractions = newInteractionCount;
+      currentMemory.lastInteraction = new Date().toISOString();
+      currentMemory.recentMessages = newMessages.slice(-20); // Keep last 20 messages
+
+      // Save to localStorage
+      localStorage.setItem('vera-julija-memory', JSON.stringify(currentMemory));
+      
+      setConversationMemory(currentMemory);
+      setTotalInteractions(newInteractionCount);
+    } catch (error) {
+      console.error('Error saving memory:', error);
+    }
+  };
+
+  // Extract topics from user message
+  const extractTopics = (message: string): string[] => {
+    const topics = [];
+    const lowerMessage = message.toLowerCase();
+    
+    // Common work topics
+    if (lowerMessage.includes('milan') || lowerMessage.includes('project')) topics.push('milan_project');
+    if (lowerMessage.includes('design') || lowerMessage.includes('creative')) topics.push('design_work');
+    if (lowerMessage.includes('meeting') || lowerMessage.includes('calendar')) topics.push('meetings');
+    if (lowerMessage.includes('decision') || lowerMessage.includes('choose')) topics.push('decision_making');
+    if (lowerMessage.includes('stress') || lowerMessage.includes('tired')) topics.push('stress_management');
+    if (lowerMessage.includes('team') || lowerMessage.includes('taylor') || lowerMessage.includes('eva')) topics.push('team_collaboration');
+    
+    return topics;
+  };
+
+  // Define memory types
+  interface MemoryInteraction {
+    timestamp: string;
+    userMessage: string;
+    veraResponse: string;
+    mode: string;
+    energyLevel: number;
+    timeSlot: string;
+  }
+
+  // Clear conversation memory
+  const clearMemory = () => {
+    if (confirm('Clear all conversation memory? This cannot be undone.')) {
+      localStorage.removeItem('vera-julija-memory');
+      setConversationMemory(null);
+      setTotalInteractions(0);
+      setMessages([]);
+      setCelebrationMoment('Memory cleared - fresh start!');
+      setTimeout(() => setCelebrationMoment(''), 3000);
+    }
+  };
+
+  // Handle biometric updates
+  const handleBiometricUpdate = (data: BiometricData) => {
+    setCurrentBiometrics(data);
+    
+    // Sync with existing energy level system
+    const newEnergyLevel = data.energyLevel > 70 ? 'high' : 
+                          data.energyLevel > 40 ? 'medium' : 'low';
+    setEnergyLevel(newEnergyLevel);
+    
+    // Sync with wellness system
+    setCurrentWellness(prev => ({
+      ...prev,
+      energyLevel: data.energyLevel,
+      stressLevel: data.stressLevel
+    }));
+    
+    // Auto-trigger stress management if needed
+    if (data.stressLevel > 80) {
+      setCelebrationMoment('High stress detected - initiating wellness protocol');
+      setTimeout(() => setCelebrationMoment(''), 4000);
+    }
+    
+    // Celebrate peak performance state
+    if (data.mood === 'excellent' && data.energyLevel > 85) {
+      setCelebrationMoment('Peak performance state achieved! 🚀');
+      setTimeout(() => setCelebrationMoment(''), 3000);
+    }
+  };
+
+  // Handle wellness updates
+  const handleWellnessUpdate = (data: WellnessData) => {
+    setCurrentWellness(data);
+    
+    // Sync with biometric system
+    setCurrentBiometrics(prev => ({
+      ...prev,
+      energyLevel: data.energyLevel,
+      stressLevel: data.stressLevel,
+      mood: data.moodScore > 80 ? 'excellent' : 
+            data.moodScore > 60 ? 'good' : 
+            data.moodScore > 40 ? 'neutral' : 
+            data.moodScore > 20 ? 'low' : 'stressed'
+    }));
+    
+    // Handle wellness alerts
+    if (data.alerts.length > 0) {
+      setCelebrationMoment(data.alerts[0]);
+      setTimeout(() => setCelebrationMoment(''), 5000);
+    }
+  };
+
+  // Handle concierge service requests
+  const handleServiceRequest = (service: ConciergeService) => {
+    setActiveServices(prev => {
+      const existing = prev.find(s => s.id === service.id);
+      if (existing) {
+        return prev.map(s => s.id === service.id ? service : s);
+      }
+      return [...prev, service];
+    });
+    
+    // Show celebration for confirmed services
+    if (service.status === 'confirmed') {
+      setCelebrationMoment(`${service.title} confirmed! ✨`);
+      setTimeout(() => setCelebrationMoment(''), 4000);
+    }
+  };
+
+  // Handle deep work updates
+  const handleFocusUpdate = (data: DeepWorkData) => {
+    setDeepWorkData(data);
+    
+    // Celebrate flow state achievement
+    if (data.flowStateAchieved && !deepWorkData.flowStateAchieved) {
+      setCelebrationMoment('Flow state achieved! 🌊 Peak performance unlocked');
+      setTimeout(() => setCelebrationMoment(''), 5000);
+    }
+    
+    // Track peak performance hours for pattern learning
+    if (data.peakPerformanceHours.length > deepWorkData.peakPerformanceHours.length) {
+      const newHours = data.peakPerformanceHours.filter(h => !deepWorkData.peakPerformanceHours.includes(h));
+      if (newHours.length > 0) {
+        setCelebrationMoment(`New peak hour identified: ${newHours[0]} 📈`);
+        setTimeout(() => setCelebrationMoment(''), 4000);
+      }
+    }
+  };
+
+  // Generate memory-based insights for VERA
+  const getMemoryInsights = (): string => {
+    if (!conversationMemory || totalInteractions < 5) return '';
+
+    const patterns = conversationMemory.patterns;
+    const insights: string[] = [];
+
+    // Preferred time patterns
+    const timePrefs = Object.entries(patterns.preferredTimes || {});
+    if (timePrefs.length > 0) {
+      const preferredTime = timePrefs.sort(([,a], [,b]) => (b as number) - (a as number))[0][0];
+      insights.push(`You typically engage most during ${preferredTime}`);
+    }
+
+    // Frequent topics
+    const topicEntries = Object.entries(patterns.frequentTopics || {});
+    if (topicEntries.length > 0) {
+      const topTopic = topicEntries.sort(([,a], [,b]) => (b as number) - (a as number))[0][0];
+      insights.push(`Frequent discussion topic: ${topTopic.replace('_', ' ')}`);
+    }
+
+    // Recent memory reference
+    const recentMemories = conversationMemory.recentMemories || [];
+    if (recentMemories.length > 0) {
+      const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const recentDecision = recentMemories.find((m: MemoryInteraction) => 
+        new Date(m.timestamp) > lastWeek && m.userMessage.toLowerCase().includes('decision')
+      );
+      if (recentDecision) {
+        insights.push(`Last week's decision context available`);
+      }
+    }
+
+    return insights.join(' | ');
+  };
 
   // Generate evolving daily greeting
   const generateDailyGreeting = () => {
@@ -227,16 +563,42 @@ export default function Home() {
       mode: currentMode
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     
     try {
+      // Prepare memory context for AI
+      const memoryContext = getMemoryInsights();
+      const recentContext = conversationMemory?.recentMemories
+        ?.slice(0, 3)
+        .map((m: MemoryInteraction) => `Previous: "${m.userMessage}" -> "${m.veraResponse.slice(0, 100)}..."`)
+        .join('\n') || '';
+
       const res = await fetch("/api/vera", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           message, 
           mode: currentMode,
-          context: { energyLevel, timestamp: new Date().toISOString() }
+          context: { 
+            energyLevel, 
+            timestamp: new Date().toISOString(),
+            memoryContext,
+            recentContext,
+            totalInteractions,
+            biometrics: {
+              energyLevel: currentBiometrics.energyLevel,
+              stressLevel: currentBiometrics.stressLevel,
+              heartRate: currentBiometrics.heartRate,
+              mood: currentBiometrics.mood
+            },
+            wellness: {
+              moodScore: currentWellness.moodScore,
+              recommendations: currentWellness.recommendations,
+              alerts: currentWellness.alerts,
+              typingPattern: currentWellness.typingPattern
+            }
+          }
         }),
       });
       
@@ -249,7 +611,11 @@ export default function Home() {
         timestamp: new Date()
       };
 
-      setMessages(prev => [...prev, veraMessage]);
+      const finalMessages = [...updatedMessages, veraMessage];
+      setMessages(finalMessages);
+
+      // Save to conversation memory
+      saveConversationMemory(finalMessages, message, data.response);
       
       // Detect team mentions in VERA's response for delightful animations
       detectTeamMention(data.response);
@@ -330,12 +696,17 @@ export default function Home() {
     });
   };
 
-  const formatMessageTime = (date: Date) => {
+const formatMessageTime = (timestamp: any) => {
+  try {
+    const date = new Date(timestamp);
     return date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
+  } catch {
+    return '';
+  }
+};
 
   return (
     <div 
@@ -406,6 +777,18 @@ export default function Home() {
         <div className="flex items-center gap-8">
           <EnergyIndicator level={energyLevel} showComment={true} />
           
+          {/* Memory Status Indicator */}
+          {memoryLoaded && totalInteractions > 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-xs text-blue-300 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 flex items-center gap-2"
+            >
+              <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
+              Memory: {totalInteractions} interactions
+            </motion.div>
+          )}
+          
           {celebrationMoment && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
@@ -430,6 +813,94 @@ export default function Home() {
           >
             {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </motion.button>
+
+          {/* Biometric Toggle */}
+          <motion.button
+            onClick={() => setShowBiometrics(!showBiometrics)}
+            className={`p-2 rounded-lg backdrop-blur-md border transition-all duration-300 ${
+              showBiometrics 
+                ? 'bg-blue-500/20 border-blue-500/30 text-blue-300' 
+                : 'bg-white/5 border-white/10 text-gray-400'
+            }`}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            title={showBiometrics ? 'Hide biometrics' : 'Show biometrics'}
+          >
+            <Activity className="w-4 h-4" />
+          </motion.button>
+
+          {/* Wellness Toggle */}
+          <motion.button
+            onClick={() => setShowWellness(!showWellness)}
+            className={`p-2 rounded-lg backdrop-blur-md border transition-all duration-300 ${
+              showWellness 
+                ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300' 
+                : 'bg-white/5 border-white/10 text-gray-400'
+            }`}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            title={showWellness ? 'Hide wellness' : 'Show wellness intelligence'}
+          >
+            <Heart className="w-4 h-4" />
+          </motion.button>
+
+          {/* Concierge Toggle */}
+          <motion.button
+            onClick={() => setShowConcierge(!showConcierge)}
+            className={`p-2 rounded-lg backdrop-blur-md border transition-all duration-300 ${
+              showConcierge 
+                ? 'bg-amber-500/20 border-amber-500/30 text-amber-300' 
+                : 'bg-white/5 border-white/10 text-gray-400'
+            }`}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            title={showConcierge ? 'Hide concierge' : 'Show luxury concierge'}
+          >
+            <Briefcase className="w-4 h-4" />
+          </motion.button>
+
+          {/* Deep Work Toggle */}
+          <motion.button
+            onClick={() => setShowDeepWork(!showDeepWork)}
+            className={`p-2 rounded-lg backdrop-blur-md border transition-all duration-300 ${
+              showDeepWork 
+                ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-300' 
+                : 'bg-white/5 border-white/10 text-gray-400'
+            }`}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            title={showDeepWork ? 'Hide deep work' : 'Show focus enhancement'}
+          >
+            <Calendar className="w-4 h-4" />
+          </motion.button>
+
+          {/* Strategic Decision Toggle */}
+          <motion.button
+            onClick={() => setShowStrategicDecision(!showStrategicDecision)}
+            className={`p-2 rounded-lg backdrop-blur-md border transition-all duration-300 ${
+              showStrategicDecision 
+                ? 'bg-purple-500/20 border-purple-500/30 text-purple-300' 
+                : 'bg-white/5 border-white/10 text-gray-400'
+            }`}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            title={showStrategicDecision ? 'Hide strategic framework' : 'Show decision intelligence'}
+          >
+            <Brain className="w-4 h-4" />
+          </motion.button>
+
+          {/* Memory Management */}
+          {totalInteractions > 5 && (
+            <motion.button
+              onClick={clearMemory}
+              className="p-2 rounded-lg backdrop-blur-md border bg-red-500/10 border-red-500/20 text-red-300 hover:bg-red-500/20 transition-all duration-300"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              title="Clear conversation memory"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </motion.button>
+          )}
           
           <div className="flex items-center gap-2 text-gray-300">
             <Clock className="w-4 h-4" />
@@ -451,6 +922,62 @@ export default function Home() {
             <p className="text-purple-200 font-light text-sm">{dailyGreeting}</p>
           </motion.div>
         )}
+
+        {/* Biometric Module */}
+        <AnimatePresence>
+          {showBiometrics && (
+            <BiometricModule 
+              onBiometricUpdate={handleBiometricUpdate}
+              className="mb-8"
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Wellness Module */}
+        <AnimatePresence>
+          {showWellness && (
+            <WellnessModule 
+              onWellnessUpdate={handleWellnessUpdate}
+              messages={messages}
+              className="mb-8"
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Luxury Concierge Module */}
+        <AnimatePresence>
+          {showConcierge && (
+            <LuxuryConcierge 
+              onServiceRequest={handleServiceRequest}
+              userContext={{
+                mood: currentBiometrics.mood,
+                stressLevel: currentBiometrics.stressLevel,
+                preferences: ['fine dining', 'luxury travel', 'wellness'],
+                location: 'Executive Office'
+              }}
+              className="mb-8"
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Deep Work Enhancement Module */}
+        <AnimatePresence>
+          {showDeepWork && (
+            <DeepWorkModule 
+              onFocusUpdate={handleFocusUpdate}
+              energyLevel={currentBiometrics.energyLevel}
+              stressLevel={currentBiometrics.stressLevel}
+              className="mb-8"
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Strategic Decision Framework Module */}
+        <AnimatePresence>
+          {showStrategicDecision && (
+            <StrategicDecisionModule />
+          )}
+        </AnimatePresence>
 
         {/* Mode Selection */}
         <motion.div 
