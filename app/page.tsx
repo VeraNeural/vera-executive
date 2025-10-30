@@ -9,6 +9,18 @@ interface Message {
   timestamp: Date;
 }
 
+// Add bounce animation
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 export default function VeraExecutive() {
   const [mounted, setMounted] = useState(false);
   const [message, setMessage] = useState('');
@@ -60,65 +72,104 @@ export default function VeraExecutive() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-white text-xl">Initializing VERA...</div>
+      <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ color: '#fff', fontSize: '20px' }}>Initializing VERA...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex flex-col">
+    <div style={{ 
+      minHeight: '100vh', 
+      background: 'linear-gradient(135deg, #000 0%, #1a1a1a 50%, #000 100%)',
+      display: 'flex',
+      flexDirection: 'column',
+      width: '100%',
+      height: '100vh',
+      overflow: 'hidden'
+    }}>
       {/* Header */}
-      <header className="border-b border-gray-800 bg-black/50 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-purple-900 flex items-center justify-center">
-                <span className="text-white font-bold text-lg">V</span>
-              </div>
-              <div>
-                <h1 className="text-white text-xl font-semibold">VERA</h1>
-                <p className="text-gray-400 text-xs">Executive Intelligence</p>
-              </div>
+      <header style={{
+        borderBottom: '1px solid #333',
+        background: 'rgba(0,0,0,0.5)',
+        backdropFilter: 'blur(10px)',
+        padding: '16px 24px',
+        flexShrink: 0
+      }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '18px' }}>V</span>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <div className="text-sm text-gray-400">
-                  {new Date().toLocaleDateString('en-US', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
-                </div>
-                <div className="text-xs text-gray-500 font-mono">
-                  {new Date().toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </div>
-              </div>
+            <div>
+              <h1 style={{ color: '#fff', fontSize: '20px', fontWeight: '600', margin: 0 }}>VERA</h1>
+              <p style={{ color: '#999', fontSize: '12px', margin: 0 }}>Executive Intelligence</p>
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '14px', color: '#999' }}>
+              {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+            </div>
+            <div style={{ fontSize: '12px', color: '#666', fontFamily: 'monospace' }}>
+              {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
             </div>
           </div>
         </div>
       </header>
 
       {/* Main Chat Area */}
-      <main className="flex-1 overflow-hidden flex flex-col">
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto px-6 py-8">
+      <main style={{ 
+        flex: 1, 
+        overflow: 'hidden', 
+        display: 'flex', 
+        flexDirection: 'column',
+        width: '100%'
+      }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '32px 24px' }}>
+          <div style={{ maxWidth: '900px', margin: '0 auto', width: '100%' }}>
             {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-600 to-purple-900 flex items-center justify-center mb-6">
-                  <span className="text-white font-bold text-3xl">V</span>
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                minHeight: '60vh', 
+                textAlign: 'center' 
+              }}>
+                <div style={{
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '24px'
+                }}>
+                  <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '32px' }}>V</span>
                 </div>
-                <h2 className="text-3xl font-light text-white mb-3">
+                <h2 style={{ fontSize: '32px', fontWeight: '300', color: '#fff', marginBottom: '12px' }}>
                   Welcome to VERA
                 </h2>
-                <p className="text-gray-400 max-w-md">
+                <p style={{ color: '#999', maxWidth: '500px', marginBottom: '32px' }}>
                   Your Executive Intelligence system. I'm here to help with strategic decisions, 
                   time management, wellness optimization, and executive support.
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-8 w-full max-w-2xl">
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+                  gap: '12px', 
+                  width: '100%', 
+                  maxWidth: '700px' 
+                }}>
                   {[
                     'Optimize my calendar for tomorrow',
                     'Brief me on today\'s priorities',
@@ -128,7 +179,19 @@ export default function VeraExecutive() {
                     <button
                       key={i}
                       onClick={() => setMessage(suggestion)}
-                      className="px-4 py-3 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 rounded-lg text-sm text-gray-300 transition-all text-left"
+                      style={{
+                        padding: '12px 16px',
+                        background: 'rgba(60, 60, 60, 0.5)',
+                        border: '1px solid #444',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        color: '#ccc',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.background = 'rgba(80, 80, 80, 0.5)'}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'rgba(60, 60, 60, 0.5)'}
                     >
                       {suggestion}
                     </button>
@@ -136,34 +199,41 @@ export default function VeraExecutive() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-6">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}
                   >
-                    <div
-                      className={`max-w-2xl rounded-2xl px-5 py-3 ${
-                        msg.role === 'user'
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-gray-800 text-gray-100'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
+                    <div style={{
+                      maxWidth: '600px',
+                      borderRadius: '16px',
+                      padding: '12px 20px',
+                      background: msg.role === 'user' ? '#7c3aed' : '#2a2a2a',
+                      color: '#fff'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'start', gap: '12px' }}>
                         {msg.role === 'vera' && (
-                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-600 to-purple-900 flex items-center justify-center flex-shrink-0 mt-1">
-                            <span className="text-white font-bold text-xs">V</span>
+                          <div style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            marginTop: '4px'
+                          }}>
+                            <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '12px' }}>V</span>
                           </div>
                         )}
-                        <div className="flex-1">
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                        <div style={{ flex: 1 }}>
+                          <p style={{ fontSize: '14px', lineHeight: '1.6', whiteSpace: 'pre-wrap', margin: 0 }}>
                             {msg.content}
                           </p>
-                          <div className="text-xs opacity-60 mt-2">
-                            {msg.timestamp.toLocaleTimeString('en-US', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                          <div style={{ fontSize: '12px', opacity: 0.6, marginTop: '8px' }}>
+                            {msg.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </div>
                       </div>
@@ -171,16 +241,24 @@ export default function VeraExecutive() {
                   </div>
                 ))}
                 {isThinking && (
-                  <div className="flex justify-start">
-                    <div className="max-w-2xl rounded-2xl px-5 py-3 bg-gray-800">
-                      <div className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-600 to-purple-900 flex items-center justify-center">
-                          <span className="text-white font-bold text-xs">V</span>
+                  <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                    <div style={{ maxWidth: '600px', borderRadius: '16px', padding: '12px 20px', background: '#2a2a2a' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '12px' }}>V</span>
                         </div>
-                        <div className="flex gap-1">
-                          <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                          <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <div style={{ width: '8px', height: '8px', background: '#7c3aed', borderRadius: '50%', animation: 'bounce 1.4s infinite ease-in-out both' }}></div>
+                          <div style={{ width: '8px', height: '8px', background: '#7c3aed', borderRadius: '50%', animation: 'bounce 1.4s infinite ease-in-out both', animationDelay: '0.16s' }}></div>
+                          <div style={{ width: '8px', height: '8px', background: '#7c3aed', borderRadius: '50%', animation: 'bounce 1.4s infinite ease-in-out both', animationDelay: '0.32s' }}></div>
                         </div>
                       </div>
                     </div>
@@ -193,10 +271,16 @@ export default function VeraExecutive() {
         </div>
 
         {/* Input Area */}
-        <div className="border-t border-gray-800 bg-black/50 backdrop-blur-md">
-          <div className="max-w-4xl mx-auto px-6 py-4">
-            <div className="flex gap-3 items-end">
-              <div className="flex-1">
+        <div style={{
+          borderTop: '1px solid #333',
+          background: 'rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(10px)',
+          padding: '16px 24px',
+          flexShrink: 0
+        }}>
+          <div style={{ maxWidth: '900px', margin: '0 auto', width: '100%' }}>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
+              <div style={{ flex: 1 }}>
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
@@ -204,19 +288,52 @@ export default function VeraExecutive() {
                   placeholder="Ask VERA anything..."
                   disabled={isThinking}
                   rows={1}
-                  className="w-full bg-gray-800 text-white placeholder-gray-500 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none disabled:opacity-50"
-                  style={{ minHeight: '48px', maxHeight: '120px' }}
+                  style={{
+                    width: '100%',
+                    background: '#2a2a2a',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '12px',
+                    padding: '12px 16px',
+                    fontSize: '14px',
+                    resize: 'none',
+                    minHeight: '48px',
+                    maxHeight: '120px',
+                    outline: 'none',
+                    fontFamily: 'inherit'
+                  }}
                 />
               </div>
               <button
                 onClick={handleSend}
                 disabled={!message.trim() || isThinking}
-                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors h-12"
+                style={{
+                  padding: '12px 24px',
+                  background: (!message.trim() || isThinking) ? '#444' : '#7c3aed',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontWeight: '500',
+                  cursor: (!message.trim() || isThinking) ? 'not-allowed' : 'pointer',
+                  height: '48px',
+                  transition: 'all 0.2s',
+                  fontSize: '14px'
+                }}
+                onMouseOver={(e) => {
+                  if (!(!message.trim() || isThinking)) {
+                    e.currentTarget.style.background = '#6d28d9';
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (!(!message.trim() || isThinking)) {
+                    e.currentTarget.style.background = '#7c3aed';
+                  }
+                }}
               >
                 Send
               </button>
             </div>
-            <div className="text-xs text-gray-500 mt-2 text-center">
+            <div style={{ fontSize: '12px', color: '#666', marginTop: '8px', textAlign: 'center' }}>
               VERA Executive Intelligence v1.0
             </div>
           </div>
