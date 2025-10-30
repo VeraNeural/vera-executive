@@ -1352,18 +1352,18 @@ export default function VeraExecutive() {
                     <div className="text-center text-gray-200 mt-20">
                       {mounted && (
                         <motion.div
-                          className="w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 flex items-center justify-center shadow-2xl"
+                          className="w-8 h-8 mx-auto mb-6 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 flex items-center justify-center shadow-lg"
                           animate={{ 
-                            scale: [1, 1.1, 1],
+                            scale: [1, 1.05, 1],
                             boxShadow: [
-                              '0 0 40px rgba(168, 85, 247, 0.6)',
-                              '0 0 60px rgba(236, 72, 153, 0.8)',
-                              '0 0 40px rgba(168, 85, 247, 0.6)'
+                              '0 0 10px rgba(168, 85, 247, 0.3)',
+                              '0 0 15px rgba(236, 72, 153, 0.4)',
+                              '0 0 10px rgba(168, 85, 247, 0.3)'
                             ]
                           }}
-                          transition={{ duration: 4, repeat: Infinity }}
+                          transition={{ duration: 3, repeat: Infinity }}
                         >
-                          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </motion.div>
