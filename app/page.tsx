@@ -9,6 +9,14 @@ interface Message {
   timestamp: Date;
 }
 
+interface ChatHistory {
+  id: string;
+  title: string;
+  messages: Message[];
+  timestamp: Date;
+}
+
+
 // Add breathing orb animation
 if (typeof document !== 'undefined') {
   const style = document.createElement('style');
@@ -21,28 +29,17 @@ if (typeof document !== 'undefined') {
     @keyframes breathe {
       0%, 100% { 
         transform: scale(1);
-        box-shadow: 0 0 20px rgba(124, 58, 237, 0.4),
-                    0 0 40px rgba(124, 58, 237, 0.2),
-                    0 0 60px rgba(124, 58, 237, 0.1);
+        box-shadow: 0 0 30px rgba(124, 58, 237, 0.6),
+                    0 0 60px rgba(124, 58, 237, 0.4),
+                    0 0 90px rgba(124, 58, 237, 0.2);
         filter: brightness(1);
       }
       50% { 
-        transform: scale(1.15);
-        box-shadow: 0 0 40px rgba(124, 58, 237, 0.7),
-                    0 0 80px rgba(124, 58, 237, 0.5),
-                    0 0 120px rgba(124, 58, 237, 0.3);
-        filter: brightness(1.3);
-      }
-    }
-    
-    @keyframes pulse-ring {
-      0% {
-        transform: scale(0.8);
-        opacity: 1;
-      }
-      100% {
-        transform: scale(1.5);
-        opacity: 0;
+        transform: scale(1.1);
+        box-shadow: 0 0 50px rgba(124, 58, 237, 0.9),
+                    0 0 100px rgba(124, 58, 237, 0.6),
+                    0 0 150px rgba(124, 58, 237, 0.3);
+        filter: brightness(1.4);
       }
     }
     
@@ -58,34 +55,8 @@ if (typeof document !== 'undefined') {
     }
     
     .breathing-orb {
-      animation: breathe 4s ease-in-out infinite;
+      animation: breathe 3s ease-in-out infinite;
       position: relative;
-    }
-    
-    .breathing-orb::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      border: 2px solid rgba(124, 58, 237, 0.5);
-      animation: pulse-ring 2s ease-out infinite;
-    }
-    
-    .breathing-orb::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      border: 2px solid rgba(124, 58, 237, 0.3);
-      animation: pulse-ring 2s ease-out infinite 1s;
     }
   `;
   document.head.appendChild(style);
@@ -95,6 +66,8 @@ export default function VeraExecutive() {
   const [mounted, setMounted] = useState(false);
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
+  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
+  const [currentChatId, setCurrentChatId] = useState<string>('');
   const [isThinking, setIsThinking] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
@@ -109,11 +82,43 @@ export default function VeraExecutive() {
     if (typeof window !== 'undefined') {
       audioRef.current = new Audio();
       audioRef.current.onended = () => setIsSpeaking(false);
+      
+      // Load chat history from localStorage
+      const saved = localStorage.getItem('vera-chat-history');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          // Convert timestamp strings back to Date objects
+          const history = parsed.map((chat: any) => ({
+            ...chat,
+            timestamp: new Date(chat.timestamp),
+            messages: chat.messages.map((msg: any) => ({
+              ...msg,
+              timestamp: new Date(msg.timestamp)
+            }))
+          }));
+          setChatHistory(history);
+        } catch (e) {
+          console.error('Failed to load chat history:', e);
+        }
+      }
+      
+      // Create initial chat ID
+      setCurrentChatId(`chat-${Date.now()}`);
     }
   }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    
+    // Auto-save chat when messages change
+    if (messages.length > 0) {
+      const timeoutId = setTimeout(() => {
+        saveCurrentChat();
+      }, 2000); // Save 2 seconds after last message
+      
+      return () => clearTimeout(timeoutId);
+    }
   }, [messages]);
 
   const handleSend = async () => {
@@ -203,6 +208,61 @@ export default function VeraExecutive() {
     } catch (error) {
       console.error('Voice error:', error);
       setIsSpeaking(false);
+    }
+  };
+
+  const saveCurrentChat = () => {
+    if (messages.length === 0) return;
+    
+    // Generate title from first user message
+    const firstUserMsg = messages.find(m => m.role === 'user');
+    const title = firstUserMsg 
+      ? firstUserMsg.content.substring(0, 50) + (firstUserMsg.content.length > 50 ? '...' : '')
+      : 'New Conversation';
+    
+    const chat: ChatHistory = {
+      id: currentChatId,
+      title,
+      messages: [...messages],
+      timestamp: new Date()
+    };
+    
+    // Update or add chat
+    const updatedHistory = chatHistory.filter(c => c.id !== currentChatId);
+    updatedHistory.unshift(chat);
+    
+    // Keep only last 20 chats
+    const limitedHistory = updatedHistory.slice(0, 20);
+    
+    setChatHistory(limitedHistory);
+    localStorage.setItem('vera-chat-history', JSON.stringify(limitedHistory));
+  };
+
+  const startNewChat = () => {
+    // Save current chat before starting new one
+    if (messages.length > 0) {
+      saveCurrentChat();
+    }
+    
+    // Reset to new chat
+    setMessages([]);
+    setCurrentChatId(`chat-${Date.now()}`);
+    setMessage('');
+    setActivePanel(null);
+  };
+
+  const loadChat = (chatId: string) => {
+    // Save current chat
+    if (messages.length > 0) {
+      saveCurrentChat();
+    }
+    
+    // Load selected chat
+    const chat = chatHistory.find(c => c.id === chatId);
+    if (chat) {
+      setMessages(chat.messages);
+      setCurrentChatId(chat.id);
+      setActivePanel(null);
     }
   };
 
@@ -311,6 +371,95 @@ export default function VeraExecutive() {
 
           {/* Feature Panels */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {/* New Chat Button */}
+            <button
+              onClick={startNewChat}
+              style={{
+                background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.2) 0%, rgba(167, 139, 250, 0.1) 100%)',
+                border: '1px solid rgba(124, 58, 237, 0.3)',
+                borderRadius: '12px',
+                padding: '14px 16px',
+                color: '#fff',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                transition: 'all 0.2s ease',
+                marginBottom: '12px'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(124, 58, 237, 0.3) 0%, rgba(167, 139, 250, 0.2) 100%)';
+                e.currentTarget.style.transform = 'translateX(4px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(124, 58, 237, 0.2) 0%, rgba(167, 139, 250, 0.1) 100%)';
+                e.currentTarget.style.transform = 'translateX(0)';
+              }}
+            >
+              <div style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '6px',
+                background: 'rgba(124, 58, 237, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '18px'
+              }}>+</div>
+              {sidebarOpen && <span>New Chat</span>}
+            </button>
+
+            {/* Chat History Panel */}
+            <button
+              onClick={() => setActivePanel(activePanel === 'history' ? null : 'history')}
+              style={{
+                background: activePanel === 'history' 
+                  ? 'linear-gradient(135deg, rgba(124, 58, 237, 0.2) 0%, rgba(91, 33, 182, 0.1) 100%)'
+                  : 'rgba(30, 30, 40, 0.4)',
+                backdropFilter: 'blur(10px)',
+                border: activePanel === 'history' 
+                  ? '1px solid rgba(124, 58, 237, 0.5)'
+                  : '1px solid rgba(124, 58, 237, 0.2)',
+                borderRadius: '12px',
+                padding: '14px 16px',
+                color: '#fff',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                transition: 'all 0.2s ease',
+                marginBottom: '16px'
+              }}
+              onMouseEnter={(e) => {
+                if (activePanel !== 'history') {
+                  e.currentTarget.style.background = 'rgba(40, 40, 50, 0.6)';
+                  e.currentTarget.style.transform = 'translateX(4px)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activePanel !== 'history') {
+                  e.currentTarget.style.background = 'rgba(30, 30, 40, 0.4)';
+                  e.currentTarget.style.transform = 'translateX(0)';
+                }
+              }}
+            >
+              <div 
+                className={activePanel === 'history' ? 'breathing-orb' : ''}
+                style={{
+                  width: '12px',
+                  height: '12px',
+                  borderRadius: '50%',
+                  background: 'radial-gradient(circle at 30% 30%, rgba(167, 139, 250, 0.9), rgba(124, 58, 237, 0.8))',
+                  boxShadow: `0 0 10px rgba(124, 58, 237, 0.4)`
+                }}>
+              </div>
+              {sidebarOpen && <span>Chat History ({chatHistory.length})</span>}
+            </button>
+
             {[
               { label: 'Email', id: 'email', color: '#7c3aed', glow: 'rgba(124, 58, 237, 0.4)' },
               { label: 'Calendar', id: 'calendar', color: '#c9a961', glow: 'rgba(201, 169, 97, 0.4)' },
@@ -604,6 +753,83 @@ export default function VeraExecutive() {
 
             {/* Panel Content */}
             <div style={{ padding: '24px' }}>
+              {activePanel === 'history' && (
+                <div style={{ color: '#fff' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '20px', color: '#a78bfa' }}>
+                    Chat History
+                  </h3>
+                  {chatHistory.length === 0 ? (
+                    <div style={{ 
+                      textAlign: 'center', 
+                      padding: '40px 20px', 
+                      color: '#666',
+                      fontSize: '14px'
+                    }}>
+                      No saved conversations yet.<br/>
+                      Start chatting and your conversations will appear here.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {chatHistory.map((chat) => (
+                        <div 
+                          key={chat.id}
+                          onClick={() => loadChat(chat.id)}
+                          style={{
+                            padding: '16px',
+                            background: chat.id === currentChatId 
+                              ? 'rgba(124, 58, 237, 0.15)' 
+                              : 'rgba(124, 58, 237, 0.05)',
+                            border: `1px solid ${chat.id === currentChatId 
+                              ? 'rgba(124, 58, 237, 0.5)' 
+                              : 'rgba(124, 58, 237, 0.2)'}`,
+                            borderRadius: '12px',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s'
+                          }}
+                          onMouseOver={(e) => {
+                            if (chat.id !== currentChatId) {
+                              e.currentTarget.style.background = 'rgba(124, 58, 237, 0.12)';
+                              e.currentTarget.style.transform = 'translateX(4px)';
+                            }
+                          }}
+                          onMouseOut={(e) => {
+                            if (chat.id !== currentChatId) {
+                              e.currentTarget.style.background = 'rgba(124, 58, 237, 0.05)';
+                              e.currentTarget.style.transform = 'translateX(0)';
+                            }
+                          }}
+                        >
+                          <div style={{ 
+                            fontSize: '13px', 
+                            fontWeight: '500', 
+                            marginBottom: '6px',
+                            color: '#e0e0e0',
+                            lineHeight: '1.4'
+                          }}>
+                            {chat.title}
+                          </div>
+                          <div style={{ 
+                            fontSize: '11px', 
+                            color: '#888',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}>
+                            <span>{chat.messages.length} messages</span>
+                            <span>{new Date(chat.timestamp).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {activePanel === 'email' && (
                 <div style={{ color: '#fff' }}>
                   <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '20px', color: '#7c3aed' }}>
