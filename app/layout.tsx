@@ -31,7 +31,6 @@ export const metadata: Metadata = {
       { url: '/favicon.ico' },
     ],
   },
-  manifest: '/manifest.json',
   openGraph: {
     title: 'VERA - Executive Intelligence',
     description: 'Executive Intelligence System',
