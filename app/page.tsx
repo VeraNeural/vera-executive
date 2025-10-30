@@ -122,8 +122,10 @@ export default function VeraExecutive() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activePanel, setActivePanel] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -139,6 +141,30 @@ export default function VeraExecutive() {
     if (typeof window !== 'undefined') {
       audioRef.current = new Audio();
       audioRef.current.onended = () => setIsSpeaking(false);
+      
+      // Initialize speech recognition
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = false;
+        recognitionRef.current.interimResults = false;
+        recognitionRef.current.lang = 'en-US';
+        
+        recognitionRef.current.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setMessage(transcript);
+          setIsListening(false);
+        };
+        
+        recognitionRef.current.onerror = (event: any) => {
+          console.error('Speech recognition error:', event.error);
+          setIsListening(false);
+        };
+        
+        recognitionRef.current.onend = () => {
+          setIsListening(false);
+        };
+      }
       
       // Load chat history from localStorage
       const saved = localStorage.getItem('vera-chat-history');
@@ -177,6 +203,22 @@ export default function VeraExecutive() {
       return () => clearTimeout(timeoutId);
     }
   }, [messages]);
+
+  const toggleMicrophone = () => {
+    if (!recognitionRef.current) {
+      alert('Speech recognition is not supported in this browser. Please use Chrome or Safari.');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      setMessage('');
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
 
   const handleSend = async () => {
     if (!message.trim() || isThinking) return;
@@ -2175,6 +2217,73 @@ export default function VeraExecutive() {
                   }}
                 />
               </div>
+              
+              {/* Microphone Button */}
+              <button
+                onClick={toggleMicrophone}
+                disabled={isThinking}
+                style={{
+                  padding: isMobile ? '0' : '14px',
+                  minWidth: isMobile ? '50px' : '48px',
+                  background: isListening
+                    ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)'
+                    : 'linear-gradient(135deg, rgba(124, 58, 237, 0.3) 0%, rgba(91, 33, 182, 0.3) 100%)',
+                  color: '#fff',
+                  border: isListening 
+                    ? '2px solid rgba(239, 68, 68, 0.6)'
+                    : '2px solid rgba(124, 58, 237, 0.4)',
+                  borderRadius: isMobile ? '14px' : '16px',
+                  fontWeight: '600',
+                  cursor: isThinking ? 'not-allowed' : 'pointer',
+                  height: isMobile ? '50px' : '48px',
+                  transition: 'all 0.3s',
+                  fontSize: isMobile ? '18px' : '16px',
+                  boxShadow: isListening
+                    ? '0 0 20px rgba(239, 68, 68, 0.5), 0 4px 20px rgba(239, 68, 68, 0.3)'
+                    : '0 4px 15px rgba(124, 58, 237, 0.2)',
+                  flexShrink: 0,
+                  WebkitTapHighlightColor: 'transparent',
+                  touchAction: 'manipulation',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                onMouseOver={(e) => {
+                  if (!isMobile && !isThinking && !isListening) {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(124, 58, 237, 0.5) 0%, rgba(91, 33, 182, 0.5) 100%)';
+                    e.currentTarget.style.boxShadow = '0 6px 25px rgba(124, 58, 237, 0.4)';
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (!isMobile && !isThinking && !isListening) {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(124, 58, 237, 0.3) 0%, rgba(91, 33, 182, 0.3) 100%)';
+                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(124, 58, 237, 0.2)';
+                  }
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  {isListening ? (
+                    <>
+                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                      <line x1="12" y1="19" x2="12" y2="23"></line>
+                      <line x1="8" y1="23" x2="16" y2="23"></line>
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1" opacity="0.3">
+                        <animate attributeName="r" from="8" to="12" dur="1s" repeatCount="indefinite" />
+                        <animate attributeName="opacity" from="0.5" to="0" dur="1s" repeatCount="indefinite" />
+                      </circle>
+                    </>
+                  ) : (
+                    <>
+                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                      <line x1="12" y1="19" x2="12" y2="23"></line>
+                      <line x1="8" y1="23" x2="16" y2="23"></line>
+                    </>
+                  )}
+                </svg>
+              </button>
+              
               <button
                 onClick={handleSend}
                 disabled={!message.trim() || isThinking}
