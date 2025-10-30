@@ -17,10 +17,26 @@ interface ChatHistory {
 }
 
 
-// Add breathing orb animation
+// Add breathing orb animation and mobile optimizations
 if (typeof document !== 'undefined') {
   const style = document.createElement('style');
   style.textContent = `
+    /* Prevent scroll bouncing on mobile */
+    html, body {
+      position: fixed;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Disable pull-to-refresh */
+    body {
+      overscroll-behavior-y: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+    
     @keyframes bounce {
       0%, 80%, 100% { transform: scale(0); }
       40% { transform: scale(1); }
@@ -73,12 +89,24 @@ if (typeof document !== 'undefined') {
       .mobile-hide {
         display: none !important;
       }
+      
+      /* Optimize text input on mobile */
+      input, textarea {
+        font-size: 16px !important; /* Prevents zoom on iOS */
+      }
     }
 
     /* iOS Safari fixes */
     @supports (-webkit-touch-callout: none) {
       .ios-safe-area {
         padding-bottom: env(safe-area-inset-bottom);
+      }
+      
+      /* Additional iOS scroll fixes */
+      body {
+        position: fixed;
+        width: 100%;
+        height: 100%;
       }
     }
   `;

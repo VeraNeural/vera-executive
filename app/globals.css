@@ -11,6 +11,11 @@
 html {
   scroll-behavior: smooth;
   font-size: 16px;
+  /* Prevent mobile bounce/overscroll */
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 body {
@@ -23,6 +28,12 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Prevent mobile bounce/overscroll */
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Typography */
@@ -533,6 +544,30 @@ textarea::placeholder {
   .grid-cols-2,
   .grid-cols-3 {
     grid-template-columns: 1fr;
+  }
+  
+  /* Mobile-specific fixes */
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Prevent iOS zoom on input focus */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+  
+  /* Disable pull-to-refresh */
+  body {
+    overscroll-behavior-y: contain;
+  }
+  
+  /* Fix for iOS Safari address bar */
+  html, body {
+    height: 100vh;
+    height: -webkit-fill-available;
   }
 }
 
