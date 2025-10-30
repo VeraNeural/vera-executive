@@ -257,7 +257,7 @@ export default function Home() {
           <div className="flex items-center gap-2 text-gray-300">
             <Clock className="w-4 h-4" />
             <span className="font-mono text-sm tracking-wider">
-              {formatTime(currentTime)}
+              {isMounted ? formatTime(currentTime) : "00:00:00"}
             </span>
           </div>
         </div>
