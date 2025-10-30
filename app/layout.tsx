@@ -9,6 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://vera-executive.vercel.app'),
   title: 'VERA - Executive Intelligence',
   description: 'Executive Intelligence System for Julija, CEO of VERA Neural',
   applicationName: 'VERA',
