@@ -397,8 +397,8 @@ export default function VeraExecutive() {
     
     // Simulate based on time of day
     const newBiometrics: BiometricData = {
-      heartRate: 60 + Math.random() * 30 + (hour > 14 && hour < 18 ? 10 : 0),
-      hrv: 30 + Math.random() * 40,
+      heartRate: 60 + (hour * 3.7) % 30 + (hour > 14 && hour < 18 ? 10 : 0),
+      hrv: 30 + (hour * 1.8) % 40,
       stress: hour > 14 && hour < 18 ? 'medium' : hour > 18 ? 'high' : 'low',
       focus: hour > 9 && hour < 12 ? 'high' : hour > 14 && hour < 17 ? 'medium' : 'low',
       energy: hour < 12 ? 'optimal' : hour < 18 ? 'moderate' : 'low',
@@ -822,14 +822,16 @@ export default function VeraExecutive() {
     const lines = text.split(/\r?\n/);
     
     let currentEvent: Partial<CalendarEvent> | null = null;
+    let eventIndex = 0;
     
     for (const line of lines) {
       if (line.startsWith('BEGIN:VEVENT')) {
         currentEvent = {
-          id: `event-${Date.now()}-${Math.random()}`,
+          id: `event-${Date.now()}-${eventIndex}`,
           energyRequired: 'medium',
           type: 'meeting'
         };
+        eventIndex++;
       } else if (line.startsWith('END:VEVENT') && currentEvent) {
         if (currentEvent.title && currentEvent.start && currentEvent.end) {
           events.push(currentEvent as CalendarEvent);
@@ -1286,7 +1288,7 @@ export default function VeraExecutive() {
                 
                 <motion.button
                   onClick={() => setShowSettingsPanel(true)}
-                  className="p-2 hover:bg-purple-500/20 rounded-lg transition-colors"
+                  className="relative z-10 p-2 hover:bg-purple-500/20 rounded-lg transition-colors cursor-pointer"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -1308,7 +1310,7 @@ export default function VeraExecutive() {
                   <button
                     key={mode}
                     onClick={() => setExecutiveMode(mode)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    className={`relative z-10 cursor-pointer px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                       executiveMode === mode
                         ? 'bg-purple-600 text-white'
                         : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
@@ -1412,7 +1414,7 @@ export default function VeraExecutive() {
                     
                     <motion.button
                       onClick={() => isListening ? stopListening() : startListening()}
-                      className={`p-3 rounded-lg transition-colors ${
+                      className={`relative z-10 cursor-pointer p-3 rounded-lg transition-colors ${
                         isListening 
                           ? 'bg-red-600 hover:bg-red-700' 
                           : 'bg-purple-600 hover:bg-purple-700'
@@ -1434,7 +1436,7 @@ export default function VeraExecutive() {
                     
                     <motion.button
                       onClick={() => handleSubmit()}
-                      className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors"
+                      className="relative z-10 cursor-pointer px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       disabled={isProcessing || !message.trim()}
@@ -1447,25 +1449,25 @@ export default function VeraExecutive() {
                   <div className="flex gap-2 mt-3">
                     <button
                       onClick={() => setShowEmailComposer(true)}
-                      className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+                      className="relative z-10 cursor-pointer px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
                     >
                       Email
                     </button>
                     <button
                       onClick={() => setShowCalendarPanel(true)}
-                      className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+                      className="relative z-10 cursor-pointer px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
                     >
                       Calendar
                     </button>
                     <button
                       onClick={() => setShowDesignPanel(true)}
-                      className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+                      className="relative z-10 cursor-pointer px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
                     >
                       Design
                     </button>
                     <button
                       onClick={() => setShowBiometricsPanel(true)}
-                      className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+                      className="relative z-10 cursor-pointer px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
                     >
                       Health
                     </button>
