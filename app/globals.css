@@ -11,7 +11,7 @@
 html {
   scroll-behavior: smooth;
   font-size: 16px;
-  /* Prevent mobile bounce/overscroll */
+  /* Prevent mobile bounce/overscroll but allow scrolling */
   width: 100%;
   height: 100%;
   height: -webkit-fill-available;
@@ -28,10 +28,9 @@ body {
   font-weight: 300;
   line-height: 1.6;
   overflow-x: hidden;
-  overflow-y: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Prevent mobile bounce/overscroll */
+  /* Prevent mobile bounce/overscroll but allow scrolling */
   width: 100%;
   overscroll-behavior: none;
   overscroll-behavior-y: contain;

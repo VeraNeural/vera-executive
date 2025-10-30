@@ -21,20 +21,17 @@ interface ChatHistory {
 if (typeof document !== 'undefined') {
   const style = document.createElement('style');
   style.textContent = `
-    /* Prevent scroll bouncing on mobile */
+    /* MOBILE FIRST: Allow scrolling but prevent bounce */
     html, body {
-      position: fixed;
-      overflow: hidden;
       width: 100%;
       height: 100%;
+      overscroll-behavior: none;
       -webkit-overflow-scrolling: touch;
     }
     
-    /* Disable pull-to-refresh */
+    /* Disable pull-to-refresh only */
     body {
-      overscroll-behavior-y: none;
-      -webkit-user-select: none;
-      -webkit-touch-callout: none;
+      overscroll-behavior-y: contain;
     }
     
     @keyframes bounce {
@@ -365,47 +362,97 @@ export default function VeraExecutive() {
       flexDirection: 'row',
       width: '100%',
       height: '100vh',
-      overflow: 'hidden',
       position: 'relative'
     }}>
-      {/* Sidebar */}
-      <div style={{
-        width: sidebarOpen && !isMobile ? '280px' : '60px',
-        background: 'linear-gradient(180deg, rgba(30, 30, 35, 0.95) 0%, rgba(25, 25, 30, 0.98) 100%)',
-        borderRight: '1px solid rgba(80, 80, 90, 0.3)',
-        transition: 'width 0.3s ease',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        position: 'relative',
-        backdropFilter: 'blur(20px)',
-        boxShadow: sidebarOpen ? '0 0 40px rgba(0, 0, 0, 0.2)' : 'none'
-      }}
-      className={isMobile ? 'mobile-sidebar' : ''}>
-        {/* Toggle Button */}
+      {/* Mobile: Overlay backdrop when sidebar is open */}
+      {isMobile && sidebarOpen && (
+        <div 
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.7)',
+            zIndex: 140,
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)'
+          }}
+        />
+      )}
+
+      {/* Mobile: Hamburger Menu Button */}
+      {isMobile && (
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           style={{
-            position: 'absolute',
-            top: '20px',
-            right: '-15px',
-            width: '30px',
-            height: '30px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
-            border: '2px solid rgba(10, 10, 10, 0.8)',
+            position: 'fixed',
+            top: '16px',
+            left: '16px',
+            width: '44px',
+            height: '44px',
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.9) 0%, rgba(91, 33, 182, 0.9) 100%)',
+            border: '1px solid rgba(124, 58, 237, 0.5)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            zIndex: 100,
-            boxShadow: '0 0 20px rgba(124, 58, 237, 0.5)'
+            zIndex: 200,
+            boxShadow: '0 4px 20px rgba(124, 58, 237, 0.4)',
+            WebkitTapHighlightColor: 'transparent'
           }}
         >
-          <span style={{ color: '#fff', fontSize: '14px' }}>
-            {sidebarOpen ? '←' : '→'}
+          <span style={{ color: '#fff', fontSize: '20px', fontWeight: 'bold' }}>
+            {sidebarOpen ? '✕' : '☰'}
           </span>
         </button>
+      )}
+
+      {/* Sidebar - Hidden offscreen on mobile by default */}
+      <div style={{
+        width: isMobile ? '280px' : (sidebarOpen ? '280px' : '60px'),
+        background: 'linear-gradient(180deg, rgba(30, 30, 35, 0.98) 0%, rgba(25, 25, 30, 0.99) 100%)',
+        borderRight: '1px solid rgba(80, 80, 90, 0.3)',
+        transition: 'all 0.3s ease',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        position: isMobile ? 'fixed' : 'relative',
+        left: isMobile ? (sidebarOpen ? '0' : '-280px') : 'auto',
+        top: 0,
+        height: '100vh',
+        zIndex: 150,
+        backdropFilter: 'blur(20px)',
+        boxShadow: sidebarOpen ? '0 0 40px rgba(0, 0, 0, 0.5)' : 'none'
+      }}>
+        {/* Desktop Toggle Button */}
+        {!isMobile && (
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '-15px',
+              width: '30px',
+              height: '30px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
+              border: '2px solid rgba(10, 10, 10, 0.8)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              zIndex: 100,
+              boxShadow: '0 0 20px rgba(124, 58, 237, 0.5)'
+            }}
+          >
+            <span style={{ color: '#fff', fontSize: '14px' }}>
+              {sidebarOpen ? '←' : '→'}
+            </span>
+          </button>
+        )}
 
         {/* Sidebar Content */}
         <div style={{ padding: '24px 16px', flex: 1, overflowY: 'auto' }}>
@@ -621,6 +668,7 @@ export default function VeraExecutive() {
         display: 'flex', 
         flexDirection: 'column',
         position: 'relative',
+        height: '100vh',
         overflow: 'hidden'
       }}>
         
@@ -1784,7 +1832,13 @@ export default function VeraExecutive() {
         flexDirection: 'column',
         width: '100%'
       }}>
-        <div style={{ flex: 1, overflowY: 'auto', padding: '32px 24px' }}>
+        <div style={{ 
+          flex: 1, 
+          overflowY: 'auto', 
+          overflowX: 'hidden',
+          padding: isMobile ? '16px 12px' : '32px 24px',
+          WebkitOverflowScrolling: 'touch'
+        }}>
           <div style={{ maxWidth: '900px', margin: '0 auto', width: '100%' }}>
             {messages.length === 0 ? (
               <div style={{ 
@@ -2034,13 +2088,13 @@ export default function VeraExecutive() {
           borderTop: '1px solid rgba(80, 80, 90, 0.3)',
           background: 'linear-gradient(180deg, rgba(30, 30, 35, 0.98) 0%, rgba(25, 25, 30, 0.99) 100%)',
           backdropFilter: 'blur(20px)',
-          padding: isMobile ? '12px 16px' : '20px 24px',
+          padding: isMobile ? '16px 12px' : '20px 24px',
           flexShrink: 0,
           boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.3)',
           position: 'relative',
-          zIndex: 100
-        }}
-        className="ios-safe-area">
+          zIndex: 100,
+          paddingBottom: isMobile ? 'max(16px, env(safe-area-inset-bottom))' : '20px'
+        }}>
           <div style={{ 
             maxWidth: isMobile ? '100%' : '900px', 
             margin: '0 auto', 
@@ -2051,7 +2105,7 @@ export default function VeraExecutive() {
               gap: isMobile ? '8px' : '16px', 
               alignItems: 'flex-end' 
             }}>
-              {/* Breathing Orb Input Icon - Hide on mobile when keyboard is up */}
+              {/* Breathing Orb Input Icon - Hide on mobile */}
               {!isMobile && (
                 <div 
                   className="breathing-orb"
@@ -2081,6 +2135,11 @@ export default function VeraExecutive() {
               
               <div style={{ flex: 1 }}>
                 <textarea
+                  ref={(el) => {
+                    if (el && isMobile) {
+                      el.style.setProperty('font-size', '16px', 'important');
+                    }
+                  }}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
@@ -2089,35 +2148,30 @@ export default function VeraExecutive() {
                   rows={1}
                   style={{
                     width: '100%',
-                    background: 'linear-gradient(135deg, rgba(50, 50, 55, 0.6) 0%, rgba(40, 40, 45, 0.8) 100%)',
+                    background: 'linear-gradient(135deg, rgba(50, 50, 55, 0.9) 0%, rgba(40, 40, 45, 0.95) 100%)',
                     color: '#fff',
-                    border: '1px solid rgba(100, 100, 110, 0.3)',
-                    borderRadius: isMobile ? '12px' : '16px',
-                    padding: isMobile ? '12px 16px' : '14px 20px',
-                    fontSize: isMobile ? '16px' : '15px',
+                    border: '2px solid rgba(124, 58, 237, 0.4)',
+                    borderRadius: isMobile ? '14px' : '16px',
+                    padding: isMobile ? '14px 16px' : '14px 20px',
+                    fontSize: '16px',
                     resize: 'none',
-                    minHeight: isMobile ? '44px' : '48px',
-                    maxHeight: isMobile ? '80px' : '120px',
+                    minHeight: isMobile ? '50px' : '48px',
+                    maxHeight: isMobile ? '100px' : '120px',
                     outline: 'none',
                     fontFamily: 'inherit',
-                    boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 10px rgba(124, 58, 237, 0.1)',
+                    boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 15px rgba(124, 58, 237, 0.2)',
                     transition: 'all 0.3s ease',
                     WebkitAppearance: 'none',
-                    WebkitBorderRadius: isMobile ? '12px' : '16px'
+                    WebkitBorderRadius: isMobile ? '14px' : '16px',
+                    touchAction: 'manipulation'
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.5)';
-                    e.currentTarget.style.boxShadow = 'inset 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 20px rgba(124, 58, 237, 0.2)';
-                    // Scroll input into view on mobile
-                    if (isMobile) {
-                      setTimeout(() => {
-                        e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                      }, 300);
-                    }
+                    e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.8)';
+                    e.currentTarget.style.boxShadow = 'inset 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 25px rgba(124, 58, 237, 0.4)';
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(100, 100, 110, 0.3)';
-                    e.currentTarget.style.boxShadow = 'inset 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 10px rgba(124, 58, 237, 0.1)';
+                    e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.4)';
+                    e.currentTarget.style.boxShadow = 'inset 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 15px rgba(124, 58, 237, 0.2)';
                   }}
                 />
               </div>
@@ -2125,43 +2179,46 @@ export default function VeraExecutive() {
                 onClick={handleSend}
                 disabled={!message.trim() || isThinking}
                 style={{
-                  padding: isMobile ? '12px 20px' : '14px 28px',
+                  padding: isMobile ? '0' : '14px 28px',
+                  minWidth: isMobile ? '50px' : 'auto',
                   background: (!message.trim() || isThinking) 
                     ? 'linear-gradient(135deg, #333, #222)' 
                     : 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 50%, #5b21b6 100%)',
                   color: '#fff',
                   border: (!message.trim() || isThinking) 
                     ? '1px solid #444' 
-                    : '1px solid rgba(124, 58, 237, 0.5)',
-                  borderRadius: isMobile ? '12px' : '16px',
+                    : '2px solid rgba(124, 58, 237, 0.6)',
+                  borderRadius: isMobile ? '14px' : '16px',
                   fontWeight: '600',
                   cursor: (!message.trim() || isThinking) ? 'not-allowed' : 'pointer',
-                  height: isMobile ? '44px' : '48px',
+                  height: isMobile ? '50px' : '48px',
                   transition: 'all 0.3s',
-                  fontSize: isMobile ? '13px' : '14px',
+                  fontSize: isMobile ? '20px' : '14px',
                   letterSpacing: '0.5px',
                   textTransform: 'uppercase',
                   boxShadow: (!message.trim() || isThinking) 
                     ? 'none' 
-                    : '0 4px 20px rgba(124, 58, 237, 0.4)',
-                  flexShrink: 0
+                    : '0 4px 20px rgba(124, 58, 237, 0.5)',
+                  flexShrink: 0,
+                  WebkitTapHighlightColor: 'transparent',
+                  touchAction: 'manipulation'
                 }}
                 onMouseOver={(e) => {
-                  if (!(!message.trim() || isThinking)) {
+                  if (!isMobile && !(!message.trim() || isThinking)) {
                     e.currentTarget.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%)';
                     e.currentTarget.style.boxShadow = '0 6px 30px rgba(124, 58, 237, 0.6)';
                     e.currentTarget.style.transform = 'translateY(-2px)';
                   }
                 }}
                 onMouseOut={(e) => {
-                  if (!(!message.trim() || isThinking)) {
+                  if (!isMobile && !(!message.trim() || isThinking)) {
                     e.currentTarget.style.background = 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 50%, #5b21b6 100%)';
                     e.currentTarget.style.boxShadow = '0 4px 20px rgba(124, 58, 237, 0.4)';
                     e.currentTarget.style.transform = 'translateY(0)';
                   }
                 }}
               >
-                {isMobile ? '→' : 'Send'}
+                {isMobile ? '➤' : 'Send'}
               </button>
             </div>
             {!isMobile && (
