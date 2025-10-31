@@ -1,42 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Deprecated route: redirect to /api/vera/optimize-calendar
 export async function POST(request: NextRequest) {
   try {
-    const { events, energy, preferences } = await request.json();
-    
-    const optimized = optimizeCalendar(events, energy, preferences);
-    
-    return NextResponse.json({
-      events: optimized,
-      recommendations: generateRecommendations(optimized, energy)
+    const body = await request.text();
+    return new NextResponse(body, {
+      status: 308,
+      headers: {
+        'Location': '/api/vera/optimize-calendar',
+        'Content-Type': 'application/json'
+      }
     });
-    
   } catch (error) {
-    return NextResponse.json({ events: [], recommendations: [] });
+    return NextResponse.json({ events: [], recommendations: [], message: 'Use /api/vera/optimize-calendar' }, { status: 308 });
   }
 }
 
-function optimizeCalendar(events: any[], energy: string, preferences: any) {
-  // Complex optimization logic here
-  return events;
-}
-
-function generateRecommendations(events: any[], energy: string) {
-  const recommendations = [];
-  
-  const backToBack = events.filter((e, i) => {
-    if (i === 0) return false;
-    const prev = events[i - 1];
-    return e.start.getTime() - prev.end.getTime() < 15 * 60 * 1000;
-  });
-  
-  if (backToBack.length > 2) {
-    recommendations.push('Too many back-to-back meetings. Add buffer time.');
-  }
-  
-  if (energy === 'low' && events.length > 5) {
-    recommendations.push('Low energy detected. Reschedule non-critical meetings.');
-  }
-  
-  return recommendations;
+export async function GET() {
+  return NextResponse.json({
+    deprecated: true,
+    redirect: '/api/vera/optimize-calendar'
+  }, { status: 308 });
 }

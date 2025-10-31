@@ -1,14 +1,10 @@
 {
   "name": "VERA Executive Intelligence",
   "short_name": "VERA",
-  "description": "Executive Intelligence System for Julija",
+  "description": "Executive Intelligence for Julija",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0A0A0A",
   "theme_color": "#8A2BE2",
-  "orientation": "portrait",
-  "scope": "/",
-  "lang": "en",
-  "dir": "ltr",
-  "categories": ["productivity", "business"]
+  "icons": []
 }
